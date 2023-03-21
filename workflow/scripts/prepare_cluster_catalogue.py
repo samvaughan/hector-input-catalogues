@@ -9,17 +9,18 @@ This script does the following things:
 """
 
 import pandas as pd
-import numpy as np
 import astropy.units as u
-import pandas_tools as P
 from astropy.cosmology import FlatLambdaCDM
-import utils 
+import utils
 
 if __name__ == "__main__":
     
     smk = snakemake
     sep_constraint_arcsec = smk.params.sep_constraint_arcsec
     
+    # Make the desired cosmology
+    cosmology = FlatLambdaCDM(H0=70, Om0=0.3)
+
     cluster_catalogue = pd.read_parquet(smk.input.input_cluster_catalogue)
     
     # Get the redshift catalogues
@@ -30,9 +31,28 @@ if __name__ == "__main__":
     print("\tDone")
     
     # Perform the matching
+    print("Matching redshifts to the cluster catalogues...")
     redshift_cat = (all_redshifts.RA.values, all_redshifts.DEC.values)
     photom_cat = (cluster_catalogue.RA.values, cluster_catalogue.dec.values)
-    idx, distance, threed_distance = photom_cat.match_to_catalog_sky(redshift_cat, photom_cat)
+    idx, distance, threed_distance = utils.match_catalogues(redshift_cat, photom_cat)
     # Only keep things within sep arcseconds of one another
     match_mask = distance < sep_constraint_arcsec * u.arcsec
+    
+    cluster_catalogue.loc[match_mask, 'z'] = all_redshifts.loc[
+        all_redshifts.index[idx[match_mask]], "Z"
+    ].values
     print("\tDone")
+    
+    cluster_catalogue["logMstarProxy_LS"] = utils.apply_Bryant_Mstar_eqtn(
+        cluster_catalogue.z.values, cluster_catalogue.LS_FAKE_SDSS_gmi.values, cluster_catalogue.LS_FAKE_SDSS_i.values, cosmology
+    )
+    
+    print("Dropping everything without a redshift...")
+    good_data_mask = (cluster_catalogue['z'] > 0.0) & (cluster_catalogue['logMstarProxy_LS'] > 0.0)
+    cluster_catalogue = cluster_catalogue.loc[good_data_mask]
+    print("\tDone")
+    
+    print("Saving the final catalogue...")
+    cluster_catalogue.to_parquet(smk.output.final_cluster_catalogue)
+    print("\tDone!")
+    

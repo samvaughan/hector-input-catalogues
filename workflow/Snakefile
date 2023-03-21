@@ -114,6 +114,8 @@ rule prepare_cluster_catalogue:
         input_cluster_catalogue="resources/InitialInputCatalogues/COMBINED_ApMatch_MSTARV2.5_MattOwers_310123.parquet",
         observed_redshift_catalogue=rules.make_redshift_catalogue_from_2dF_obs.output.hrs_redshift_catalogue,
         exisiting_redshift_catalogue="resources/Previous_Redshift_Cats/hemispec.v0.91recommended.parquet",
+    params:
+        sep_constraint_arcsec=3.0,
     output:
         final_cluster_catalogue=rules.all.input.final_cluster_catalogue,
     script:

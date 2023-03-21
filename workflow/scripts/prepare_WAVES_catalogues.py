@@ -56,7 +56,7 @@ if __name__ == "__main__":
     print("Matching redshifts to the WAVES catalogues...")
     redshift_cat = (all_redshifts.RA.values, all_redshifts.DEC.values)
     photom_cat = (all_photometry.RAmax.values, all_photometry.Decmax.values)
-    idx, distance, threed_distance = photom_cat.match_to_catalog_sky(redshift_cat, photom_cat)
+    idx, distance, threed_distance = utils.match_catalogues(redshift_cat, photom_cat)
 
     # Only keep things within sep arcseconds of one another
     match_mask = distance < sep_constraint_arcsec * u.arcsec
@@ -120,7 +120,7 @@ if __name__ == "__main__":
 
     print("Adding the stellar masses...")
     all_photometry["Mstar"] = utils.apply_Bryant_Mstar_eqtn(
-        all_photometry.z, all_photometry.mag_gt, all_photometry.mag_it, cosmology
+        all_photometry.z.values, (all_photometry.mag_gt - all_photometry.mag_it).values, all_photometry.mag_it.values, cosmology
     )
     print("\tDone")
 
@@ -138,12 +138,11 @@ if __name__ == "__main__":
 
     max_sep = sep_constraint_arcsec * u.arcsec
     sep_constraint = d2d < max_sep
-    hector_matches = waves_N_catalogue[sep_constraint]
 
     final_WAVES_N_catalogue = waves_N_catalogue_with_SAMI.loc[~sep_constraint]
 
     print(
-        f"\tRemoved {len(hector_matches)} galaxies from the WAVES North catalogue which are also in the SAMI catalogue"
+        f"\tRemoved {np.sum(sep_constraint)} galaxies from the WAVES North catalogue which are also in the SAMI catalogue"
     )
     print("\tDone")
 

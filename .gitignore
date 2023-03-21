@@ -1,3 +1,4 @@
 *.fits
 *.parquet
 results/*
+.snakemake/*

@@ -1,5 +1,5 @@
 """
-Useful functions for the catalogue preparation. 
+Useful functions for the catalogue preparation.
 
 Functions are:
 
@@ -29,19 +29,19 @@ def mag_from_flux(flux):
     return -2.5 * np.log10(flux) + 8.90
 
 
-def apply_Bryant_Mstar_eqtn(redshifts, mag_g, mag_i, cosmo):
+def apply_Bryant_Mstar_eqtn(redshifts, g_m_i, mag_i, cosmo):
     """Add a stellar mass column using the equation from Bryant et al. 2015
 
     Args:
         redshifts (array-like): Redshift values
-        mag_g (array-like): g-band magnitudes in the AB system
+        g_m_i (array-like): g - i colour
         mag_i (array-like): i-band magnitudes in the AB system
         cosmo (astropy.cosmology): An astropy cosmology instance
 
     Returns:
         array_like: Stellar masses corresponding to the magnitudes in the dataframe, assuming the given cosmology
     """
-
+    # TODO: Fix an error when the redshifts are a pandas series
     dist_mod = cosmo.distmod(redshifts).value
 
     mstar_effective = (
@@ -49,7 +49,7 @@ def apply_Bryant_Mstar_eqtn(redshifts, mag_g, mag_i, cosmo):
         + 0.4 * dist_mod
         - np.log10(1.0 + redshifts)
         + (1.2117 - 0.5893 * redshifts)
-        + (0.7106 - 0.1467 * redshifts) * (mag_g - mag_i)
+        + (0.7106 - 0.1467 * redshifts) * g_m_i
     )
 
     return mstar_effective
@@ -80,7 +80,7 @@ def combine_redshift_catalogues(existing_redshifts, observed_redshifts):
 
 
 def match_catalogues(catalogue_A: tuple[ArrayLike, ArrayLike], catalogue_B: tuple[ArrayLike, ArrayLike]) -> typing.Tuple[ArrayLike, ArrayLike, ArrayLike]:
-    """Match two catalogues in redshift using Astropy and return the idx, distance and 3D distance lists.
+    """Match two catalogues in redshift using Astropy and return the idx, distance and 3D distance lists. Note! The longest catalogue should be given first- the output distance vector is the same length as catalogue B.
 
     Args:
         catalogue_A (tuple[ArrayLike, ArrayLike]): A two component tuple of RA and Dec vectors for catalogue A
