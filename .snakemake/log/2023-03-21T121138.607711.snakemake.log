@@ -1,0 +1,30 @@
+Building DAG of jobs...
+Using shell: /bin/bash
+Provided cores: 1 (use --cores to define parallelism)
+Rules claiming more threads will be scaled down.
+Job stats:
+job                        count    min threads    max threads
+-----------------------  -------  -------------  -------------
+all                            1              1              1
+prepare_WAVES_catalogue        1              1              1
+total                          2              1              1
+
+Select jobs to execute...
+
+[Tue Mar 21 12:11:39 2023]
+Job 2: Preparing the WAVES catalogue
+Reason: Missing output files: results/FinalInputCatalogues/WAVES_N_redshifts_final_input.parquet, results/FinalInputCatalogues/WAVES_S_redshifts_final_input.parquet
+
+[Tue Mar 21 12:13:46 2023]
+Error in rule prepare_WAVES_catalogue:
+    jobid: 2
+    output: results/FinalInputCatalogues/WAVES_N_redshifts_final_input.parquet, results/FinalInputCatalogues/WAVES_S_redshifts_final_input.parquet
+
+RuleException:
+CalledProcessErrorin line 106 of /Users/samvaughan/Science/Hector/Targets/MakeInputCatalogues/workflow/Snakefile:
+Command 'set -euo pipefail;  /opt/anaconda3/envs/stan/bin/python /Users/samvaughan/Science/Hector/Targets/MakeInputCatalogues/.snakemake/scripts/tmpn8mpdzp3.prepare_WAVES_catalogues.py' returned non-zero exit status 1.
+  File "/Users/samvaughan/Science/Hector/Targets/MakeInputCatalogues/workflow/Snakefile", line 106, in __rule_prepare_WAVES_catalogue
+  File "/opt/anaconda3/envs/stan/lib/python3.10/concurrent/futures/thread.py", line 58, in run
+Shutting down, this might take some time.
+Exiting because a job execution failed. Look above for error message
+Complete log: .snakemake/log/2023-03-21T121138.607711.snakemake.log

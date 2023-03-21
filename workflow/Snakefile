@@ -1,0 +1,120 @@
+"""
+Take the master input catalogues for Hector and turn them into catalogues which we can run the target selection on.
+
+For WAVES, this means:
+
+* Matching the photmetric catalogues to our redshifts
+* Adding the correct magnitude columns
+* Removing the SAMI galaxies from WAVES North
+* Removing objects classed as "star" (if any exist)
+
+For the Clusters, this means
+
+* Matching to our redshift catalogues
+
+These final catalogues should then be used by the Target Selection code.
+"""
+from pathlib import Path
+
+# The fields we've observed redshifts from
+fields = [
+    "H01",
+    "H03",
+    "A3391",
+    "A3395",
+    "A3667",
+    "A3716",
+    "A3376",
+    "G09",
+    "G12",
+    "G15",
+    "A0119",
+    "A151",
+]
+
+clusters = [
+    "A0085",
+    "A0119",
+    "A0151",
+    "A2399",
+    "A3158",
+    "A3266",
+    "A3376",
+    "A3391",
+    "A3395",
+    "A3667",
+    "A3716",
+]
+
+
+def get_all_redshift_observations(wildcards):
+    """
+    Collect all the Hector Redshift Survey observations
+    """
+    all_redshift_files = Path("resources/HRS_Redshift_Observations").glob("*.fits")
+    return all_redshift_files
+
+
+rule all:
+    input:
+        hrs_redshift_catalogue="results/Redshift_Cats/all_2dF_observations.parquet",
+        matched_redshifts_and_WAVES_photometry_N="results/FinalInputCatalogues/WAVES_N_redshifts_final_input.parquet",
+        matched_redshifts_and_WAVES_photometry_S="results/FinalInputCatalogues/WAVES_S_redshifts_final_input.parquet",
+        final_cluster_catalogue="results/FinalInputCatalogues/Clusters_final_input.parquet",
+
+
+# rule cut_down_Cluster_catalogue:
+#     message:
+#         "Removing objects from the Cluster catalogue"
+#     input:
+#         cluster_catalogue_fname="resources/Cluster_Cats/COMBINED_ApMatch_MSTARV2.5_MattOwers_310123.parquet",
+#     params:
+#         limiting_r_mag=limiting_r_mag,
+#     output:
+#         cut_down_Cluster_catalogue_fname=rules.all.input.cut_down_cluster_catalogue,
+#     script:
+#         "scripts/cut_down_Cluster_catalogue.py"
+
+
+rule make_redshift_catalogue_from_2dF_obs:
+    message:
+        "Making the master catalogue of redshifts from the Hector Redshift Survey"
+    input:
+        redshift_observations=get_all_redshift_observations,
+    output:
+        hrs_redshift_catalogue=rules.all.input.hrs_redshift_catalogue,
+    params:
+        all_field_names=fields,
+    script:
+        "scripts/make_redshift_catalogue_from_observations.py"
+
+
+rule prepare_WAVES_catalogue:
+    message:
+        "Preparing the WAVES catalogue"
+    input:
+        WAVES_S_input="resources/InitialInputCatalogues/WAVES_S_Hector.parquet",
+        WAVES_N_input="resources/InitialInputCatalogues/WAVES_N_Hector.parquet",
+        observed_redshift_catalogue=rules.make_redshift_catalogue_from_2dF_obs.output.hrs_redshift_catalogue,
+        exisiting_redshift_catalogue="resources/Previous_Redshift_Cats/hemispec.v0.91recommended.parquet",
+        SAMI_catalogue="resources/SAMI_catalogue/jvds_stelkin_cat_v012_mge_seecorr_kh20_v260421_private.fits",
+    params:
+        sep_constraint_arcsec=3.0,
+    output:
+        final_WAVES_N_catalogue=rules.all.input.matched_redshifts_and_WAVES_photometry_N,
+        final_WAVES_S_catalogue=rules.all.input.matched_redshifts_and_WAVES_photometry_S,
+    script:
+        "scripts/prepare_WAVES_catalogues.py"
+
+
+rule prepare_cluster_catalogue:
+    message:
+        "Prepare the Cluster catalogue"
+    input:
+        input_cluster_catalogue="resources/InitialInputCatalogues/COMBINED_ApMatch_MSTARV2.5_MattOwers_310123.parquet",
+        observed_redshift_catalogue=rules.make_redshift_catalogue_from_2dF_obs.output.hrs_redshift_catalogue,
+        exisiting_redshift_catalogue="resources/Previous_Redshift_Cats/hemispec.v0.91recommended.parquet",
+    output:
+        final_cluster_catalogue=rules.all.input.final_cluster_catalogue,
+    script:
+        "scripts/prepare_cluster_catalogue.py"

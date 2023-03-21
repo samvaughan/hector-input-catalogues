@@ -1,0 +1,8 @@
+Building DAG of jobs...
+MissingInputException in rule prepare_WAVES_catalogue in line 91 of /Users/samvaughan/Science/Hector/Targets/MakeInputCatalogues/workflow/Snakefile:
+Missing input files for rule prepare_WAVES_catalogue:
+    output: results/FinalInputCatalogues/WAVES_N_redshifts_final_input.parquet, results/FinalInputCatalogues/WAVES_S_redshifts_final_input.parquet
+    affected files:
+        resources/InitialInputCatalogues/WAVES_S.parquet
+        resources/InitialInputCatalogues/WAVES_N.parquet
+        resouces/SAMI_catalogue/jvds_stelkin_cat_v012_mge_seecorr_kh20_v260421_private.fits
