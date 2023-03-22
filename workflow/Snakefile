@@ -16,6 +16,29 @@ These final catalogues should then be used by the Target Selection code.
 """
 from pathlib import Path
 
+# The three master regions for our Hector observations
+master_regions = ["WAVES_S", "WAVES_N", "HectorClusters"]
+
+# The smaller Hector Survey fields
+hector_survey_regions = [
+    "G23",
+    "H01",
+    "H03",
+    "G12",
+    "G15",
+    "A0085",
+    "A0119",
+    "A0151",
+    "A2399",
+    "A3158",
+    "A3266",
+    "A3376",
+    "A3391_A3395",
+    "A3667",
+    "A3716",
+]
+
+
 # The fields we've observed redshifts from
 fields = [
     "H01",
@@ -32,20 +55,6 @@ fields = [
     "A151",
 ]
 
-clusters = [
-    "A0085",
-    "A0119",
-    "A0151",
-    "A2399",
-    "A3158",
-    "A3266",
-    "A3376",
-    "A3391",
-    "A3395",
-    "A3667",
-    "A3716",
-]
-
 
 def get_all_redshift_observations(wildcards):
     """
@@ -58,22 +67,14 @@ def get_all_redshift_observations(wildcards):
 rule all:
     input:
         hrs_redshift_catalogue="results/Redshift_Cats/all_2dF_observations.parquet",
-        matched_redshifts_and_WAVES_photometry_N="results/FinalInputCatalogues/WAVES_N_redshifts_final_input.parquet",
-        matched_redshifts_and_WAVES_photometry_S="results/FinalInputCatalogues/WAVES_S_redshifts_final_input.parquet",
-        final_cluster_catalogue="results/FinalInputCatalogues/Clusters_final_input.parquet",
-
-
-# rule cut_down_Cluster_catalogue:
-#     message:
-#         "Removing objects from the Cluster catalogue"
-#     input:
-#         cluster_catalogue_fname="resources/Cluster_Cats/COMBINED_ApMatch_MSTARV2.5_MattOwers_310123.parquet",
-#     params:
-#         limiting_r_mag=limiting_r_mag,
-#     output:
-#         cut_down_Cluster_catalogue_fname=rules.all.input.cut_down_cluster_catalogue,
-#     script:
-#         "scripts/cut_down_Cluster_catalogue.py"
+        WAVES_N_final_input_catalogue="results/FinalInputCatalogues/WAVES_N_final_input.parquet",
+        WAVES_S_final_input_catalogue="results/FinalInputCatalogues/WAVES_S_final_input.parquet",
+        cluster_final_input_catalogue="results/FinalInputCatalogues/HectorClusters_final_input.parquet",
+        target_selection_catalogue=expand(
+            "results/TargetSelectedMasterCatalogues/{master_region}/{master_region}_master_target_selected.parquet",
+            master_region=master_regions,
+        ),
+        region_catalogues=expand(),
 
 
 rule make_redshift_catalogue_from_2dF_obs:
@@ -101,8 +102,8 @@ rule prepare_WAVES_catalogue:
     params:
         sep_constraint_arcsec=3.0,
     output:
-        final_WAVES_N_catalogue=rules.all.input.matched_redshifts_and_WAVES_photometry_N,
-        final_WAVES_S_catalogue=rules.all.input.matched_redshifts_and_WAVES_photometry_S,
+        final_WAVES_N_catalogue=rules.all.input.WAVES_N_final_input_catalogue,
+        final_WAVES_S_catalogue=rules.all.input.WAVES_S_final_input_catalogue,
     script:
         "scripts/prepare_WAVES_catalogues.py"
 
@@ -117,6 +118,19 @@ rule prepare_cluster_catalogue:
     params:
         sep_constraint_arcsec=3.0,
     output:
-        final_cluster_catalogue=rules.all.input.final_cluster_catalogue,
+        final_cluster_catalogue=rules.all.input.cluster_final_input_catalogue,
     script:
         "scripts/prepare_cluster_catalogue.py"
+
+
+rule run_target_selection:
+    message:
+        "Run the target selection on an input catalogue"
+    input:
+        target_selection_config_file="resources/TS_config_files/{master_region}_TS_config.yaml",
+        input_catalogue="results/FinalInputCatalogues/{master_region}_final_input.parquet",
+    output:
+        target_selection_plot="results/TargetSelectedMasterCatalogues/{master_region}/{master_region}_target_selection.png",
+        master_target_selected_catalogue="results/TargetSelectedMasterCatalogues/{master_region}/{master_region}_master_target_selected.parquet",
+    script:
+        "scripts/run_target_selection.py"

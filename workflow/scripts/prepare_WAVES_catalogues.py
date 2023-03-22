@@ -2,7 +2,7 @@
 Prepare the WAVES input catalogues we've been given to be used for Hector target selection.
 
 This script does the following things:
-
+ 
 * Removes any objects classed as "star"
 * Matches the photmetric catalogues to our redshifts (both existing and observed with the HRS)
 * Adds the correct magnitude columns
@@ -28,24 +28,28 @@ if __name__ == "__main__":
 
     # Read in the existing redshifts and our new observations
     print("Combining the redshifts...")
-    existing_redshifts = pd.read_parquet(smk.input.exisiting_redshift_catalogue).reset_index()
+    existing_redshifts = pd.read_parquet(
+        smk.input.exisiting_redshift_catalogue
+    ).reset_index()
     observed_redshifts = pd.read_parquet(smk.input.observed_redshift_catalogue)
-    all_redshifts = utils.combine_redshift_catalogues(existing_redshifts, observed_redshifts)
+    all_redshifts = utils.combine_redshift_catalogues(
+        existing_redshifts, observed_redshifts
+    )
     print("\tDone")
-    
+
     # Now load the photometry from WAVES
     print("Combining the WAVES photometry...")
     waves_catalogue_S = pd.read_parquet(smk.input.WAVES_S_input)
     waves_catalogue_N = pd.read_parquet(smk.input.WAVES_N_input)
     all_photometry = pd.concat((waves_catalogue_S, waves_catalogue_N))
     print("\tDone")
-    
+
     # Remove things classed as "star"
     print("Removing stars...")
     to_remove = all_photometry["class"] == "star"
     all_photometry = all_photometry.loc[~to_remove]
     print("\tDone")
-    
+
     # Fold the stuff with a negative RA to be around ~330-360 again
     # We need to do this because the redshift catalogue we're matching to runs between 0 and 360 not -180 and 180.
     all_photometry.loc[all_photometry.RAmax < 0, "RAmax"] = (
@@ -61,7 +65,7 @@ if __name__ == "__main__":
     # Only keep things within sep arcseconds of one another
     match_mask = distance < sep_constraint_arcsec * u.arcsec
     print("\tDone")
-    
+
     # Now drop things without a redshift
     print("Dropping everything without a redshift...")
     # Use the match_mask as a new column and add the redshifts
@@ -117,11 +121,19 @@ if __name__ == "__main__":
     ]
     all_photometry = all_photometry.drop(cols_to_drop, axis=1)
     print("\tDone")
-
+    
     print("Adding the stellar masses...")
     all_photometry["Mstar"] = utils.apply_Bryant_Mstar_eqtn(
-        all_photometry.z.values, (all_photometry.mag_gt - all_photometry.mag_it).values, all_photometry.mag_it.values, cosmology
+        all_photometry.z.values,
+        (all_photometry.mag_gt - all_photometry.mag_it).values,
+        all_photometry.mag_it.values,
+        cosmology,
     )
+    print("\tDone")
+    
+    print("Adding the ellipticity...")
+    # Make an ellipticity column from the axis ratio
+    all_photometry['ellipticity'] = 1 - all_photometry['axrat']
     print("\tDone")
 
     # Split the catalogues up again
@@ -133,7 +145,10 @@ if __name__ == "__main__":
     sami = P.load_FITS_table_in_pandas(smk.input.SAMI_catalogue)
 
     sami_catalogue = (sami.RA.values, sami.DEC.values)
-    waves_N_catalogue = (waves_N_catalogue_with_SAMI.RAmax.values, waves_N_catalogue_with_SAMI.Decmax.values)
+    waves_N_catalogue = (
+        waves_N_catalogue_with_SAMI.RAmax.values,
+        waves_N_catalogue_with_SAMI.Decmax.values,
+    )
     idx, d2d, d3d = utils.match_catalogues(sami_catalogue, waves_N_catalogue)
 
     max_sep = sep_constraint_arcsec * u.arcsec
@@ -145,6 +160,9 @@ if __name__ == "__main__":
         f"\tRemoved {np.sum(sep_constraint)} galaxies from the WAVES North catalogue which are also in the SAMI catalogue"
     )
     print("\tDone")
+
+    # Finally, move the things we've put around 350 degrees back to be negative in RA
+    final_WAVES_S_catalogue.loc[final_WAVES_S_catalogue.RAmax > 300, "RAmax"] -= 360
 
     print("Saving the final catalogues...")
     final_WAVES_N_catalogue.to_parquet(smk.output.final_WAVES_N_catalogue)

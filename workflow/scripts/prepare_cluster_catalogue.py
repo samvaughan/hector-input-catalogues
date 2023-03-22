@@ -43,12 +43,15 @@ if __name__ == "__main__":
     ].values
     print("\tDone")
     
+    print("Making the Stellar Mass and Elliptpcity columns...")
     cluster_catalogue["logMstarProxy_LS"] = utils.apply_Bryant_Mstar_eqtn(
         cluster_catalogue.z.values, cluster_catalogue.LS_FAKE_SDSS_gmi.values, cluster_catalogue.LS_FAKE_SDSS_i.values, cosmology
     )
+    cluster_catalogue['ellipticity'] = 1 - cluster_catalogue['B_on_A']
+    print("\tDone")
     
-    print("Dropping everything without a redshift...")
-    good_data_mask = (cluster_catalogue['z'] > 0.0) & (cluster_catalogue['logMstarProxy_LS'] > 0.0)
+    print("Dropping everything without a redshift and which isn't a cluster member")
+    good_data_mask = (cluster_catalogue['z'] > 0.0) & (cluster_catalogue['logMstarProxy_LS'] > 0.0) & ((cluster_catalogue['mem_flag'] == 1))
     cluster_catalogue = cluster_catalogue.loc[good_data_mask]
     print("\tDone")
     
