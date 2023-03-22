@@ -12,6 +12,9 @@ import pandas as pd
 import astropy.units as u
 from astropy.cosmology import FlatLambdaCDM
 import utils
+import pandas_tools as P
+import numpy as np
+
 
 if __name__ == "__main__":
     
@@ -53,6 +56,24 @@ if __name__ == "__main__":
     print("Dropping everything without a redshift and which isn't a cluster member")
     good_data_mask = (cluster_catalogue['z'] > 0.0) & (cluster_catalogue['logMstarProxy_LS'] > 0.0) & ((cluster_catalogue['mem_flag'] == 1))
     cluster_catalogue = cluster_catalogue.loc[good_data_mask]
+    print("\tDone")
+    
+    # Remove SAMI
+    print("Removing SAMI galaxies...")
+    sami = P.load_FITS_table_in_pandas(smk.input.SAMI_catalogue)
+
+    sami_catalogue = (sami.RA.values, sami.DEC.values)
+    cluster_catalogue_RA_DEC = (
+        cluster_catalogue.RA.values,
+        cluster_catalogue.dec.values,
+    )
+    idx, d2d, d3d = utils.match_catalogues(sami_catalogue, cluster_catalogue_RA_DEC)
+
+    max_sep = sep_constraint_arcsec * u.arcsec
+    sep_constraint = d2d < max_sep
+
+    cluster_catalogue = cluster_catalogue.loc[~sep_constraint]
+    print(f"\tRemoved {np.sum(sep_constraint)} SAMI galaxies")
     print("\tDone")
     
     print("Saving the final catalogue...")

@@ -1,22 +1,24 @@
 """
 Take our master region catalogues and separate them up into each region.
 
-Do this using RA and DEC limits set in a separate file
+Do this using RA and DEC limits set in a separate file (resources/RegionInformation/all_regions.csv)
 """
 import pandas as pd
 
 smk = snakemake
-region_information = pd.read_csv(smk.input.region_info_file, index_col='name')
-master_df = pd.read_csv(smk.input.master_catalogue)
+region_information = pd.read_csv(smk.input.region_information, index_col='name')
 
-out_names = smk.output.region_target_catalogues
+# Load in all the catalogues we have
+master_df = pd.DataFrame()
+for catalogue in smk.input.master_catalogues:
+    new_cat = pd.read_parquet(catalogue)
+    master_df = pd.concat((master_df, new_cat))
 
-for (region, row), filename in zip(region_information.iterrows(), out_names):
+output_filenames = smk.output.all_region_catalogues
 
-    # if smk.params.component != 'Clusters':
+for (region, row), filename in zip(region_information.iterrows(), output_filenames):
+
+    print(f"Saving {region} to {filename}:")
     region_mask = (master_df.RA > row.min_RA) & (master_df.RA < row.max_RA) & (master_df.DEC > row.min_DEC) & (master_df.DEC < row.max_DEC)
     master_df.loc[region_mask].to_csv(filename)
-    print(f"Selected {region_mask.sum()} galaxies for the {region} region")
-
-    # else:
-    #     raise NotImplementedError('Need to add the code for the clusters here')
+    print(f"\tSelected {region_mask.sum()} galaxies for {region}")
