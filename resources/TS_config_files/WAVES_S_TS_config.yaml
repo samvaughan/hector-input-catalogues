@@ -64,7 +64,7 @@ output_filename_stem: WAVES_S
 
 # Where to collect all the output files. In here, we'll make folders called 'Configuration', 'Plots', 'Tiles' and 'Logs'
 # This folder is made if it doesn't exist
-output_folder: results/TargetSelectedMasterCatalogues/WAVES_S/
+output_folder: results/MasterCatalogues/WAVES_S/
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # Tiling options

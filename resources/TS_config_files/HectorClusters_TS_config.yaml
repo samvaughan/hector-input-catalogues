@@ -18,15 +18,17 @@ minRe: 1.5
 SourceCat: "HectorClusters"
 
 # This is the selection we do on the pandas table
-selection: (table.iloc[:,23]>0) & (table.iloc[:,7]>0) & (table.iloc[:,68]>0)
+selection: (table.iloc[:,23]>0) & (table.iloc[:,75]>0) & (table.iloc[:,68]>0)
 
 # Here we say which columns in the master catalogue correspond to which variables the survey simulator expects. Use None (no quotes) if they don't exist
+
+# NOTE: Here we're using the **cluster** redshift as the redshiftf for the target selection, **NOT** the individual galaxy redshift. However, we do add back in the individual galaxy redshift into the tile files afterwards (see the run_target_selection.py script)
 Columns:
   CATID: 1
   RA: 3
   DEC: 4
   Re: 23
-  z: 7
+  z: 75
   Mstar: 68
   GAL_MAG_U: 58
   GAL_MAG_G: 8
@@ -51,7 +53,7 @@ Columns:
 
 total_area: 0
 
-output_folder: results/TargetSelectedMasterCatalogues/HectorClusters
+output_folder: results/MasterCatalogues/HectorClusters
 # Stem to attach to all the tile files we'll make. Will have an underscore after it
 output_filename_stem: HectorClusters
 

@@ -44,13 +44,18 @@ import numpy as np
 # Set up
 # The smaller Hector Survey fields
 hector_survey_regions_information = pd.read_csv(
-    "resources/RegionInformation/all_regions.csv"
+    "resources/RegionInformation/all_regions.csv", index_col="name"
 )
-region_names = hector_survey_regions_information["name"].values
+region_names = hector_survey_regions_information.index.values
 master_regions_per_region_name = hector_survey_regions_information[
     "master_region"
 ].values
 master_regions = np.unique(master_regions_per_region_name)
+
+# Get just the cluster regions
+cluster_region_names = region_names[master_regions_per_region_name == "HectorClusters"]
+WAVES_S_region_names = region_names[master_regions_per_region_name == "WAVES_S"]
+WAVES_N_region_names = region_names[master_regions_per_region_name == "WAVES_N"]
 
 # The fields we've observed redshifts from
 fields = [
@@ -67,6 +72,12 @@ fields = [
     "A0119",
     "A151",
 ]
+
+# Some parameter we'll need
+brightest_magnitude = 12
+faintest_magnitude = 18
+date_for_observations = "2023-06-30T14:00:00"
+RA_DEC_padding_for_star_selection = 1.0
 
 
 def get_all_redshift_observations(wildcards):
@@ -92,6 +103,26 @@ rule all:
             zip,
             master_region=master_regions_per_region_name,
             region_name=region_names,
+        ),
+        clusters_standard_star_catalogues=expand(
+            "results/RegionCatalogues/HectorClusters/{region_name}/{region_name}_standard_stars.csv",
+            region_name=cluster_region_names,
+        ),
+        WAVES_S_standard_star_catalogues=expand(
+            "results/RegionCatalogues/WAVES_S/{region_name}/{region_name}_standard_stars.csv",
+            region_name=WAVES_S_region_names,
+        ),
+        WAVES_N_standard_star_catalogues=expand(
+            "results/RegionCatalogues/WAVES_N/{region_name}/{region_name}_standard_stars.csv",
+            region_name=WAVES_N_region_names,
+        ),
+        WAVES_S_guide_star_catalogues=expand(
+            "results/RegionCatalogues/WAVES_S/{region_name}/{region_name}_guide_stars.csv",
+            region_name=WAVES_S_region_names,
+        ),
+        WAVES_N_guide_star_catalogues=expand(
+            "results/RegionCatalogues/WAVES_N/{region_name}/{region_name}_guide_stars.csv",
+            region_name=WAVES_N_region_names,
         ),
 
 
@@ -134,6 +165,7 @@ rule prepare_cluster_catalogue:
         observed_redshift_catalogue=rules.make_redshift_catalogue_from_2dF_obs.output.hrs_redshift_catalogue,
         exisiting_redshift_catalogue="resources/Previous_Redshift_Cats/hemispec.v0.91recommended.parquet",
         SAMI_catalogue="resources/SAMI_catalogue/jvds_stelkin_cat_v012_mge_seecorr_kh20_v260421_private.fits",
+        cluster_information="resources/ClusterInformation/HectorCluster_Information.txt",
     params:
         sep_constraint_arcsec=3.0,
     output:
@@ -167,41 +199,68 @@ rule separate_into_subregions:
         "scripts/separate_catalogues_into_regions.py"
 
 
-rule select_stars_for_region:
+rule make_WAVES_star_catalogues:
     message:
-        "Selecting guide stars and standard stars for region"
+        "Selecting guide stars and standard stars for the WAVES regions"
     input:
         F_star_colours_SKYMAPPER="resources/Misc/SkyMapper_F_star_colours.csv",
         F_star_colours_PANSTARRS="resources/Misc/PANSTARRS_F_star_colours.csv",
     params:
         min_RA=lambda wildcards: hector_survey_regions_information.loc[
-            f"{wildcards.region}", "min_RA"
+            f"{wildcards.region_name}", "min_RA"
         ],
         max_RA=lambda wildcards: hector_survey_regions_information.loc[
-            f"{wildcards.region}", "max_RA"
+            f"{wildcards.region_name}", "max_RA"
         ],
         min_DEC=lambda wildcards: hector_survey_regions_information.loc[
-            f"{wildcards.region}", "min_DEC"
+            f"{wildcards.region_name}", "min_DEC"
         ],
         max_DEC=lambda wildcards: hector_survey_regions_information.loc[
-            f"{wildcards.region}", "max_DEC"
+            f"{wildcards.region_name}", "max_DEC"
         ],
-        brightest_magnitude=config["brightest_magnitude"],
-        faintest_magnitude=config["faintest_magnitude"],
-        date_for_observations=config["date_for_observations"],
-        pad=config["RA_DEC_padding_for_star_selection"],
+        brightest_magnitude=brightest_magnitude,
+        faintest_magnitude=faintest_magnitude,
+        date_for_observations=date_for_observations,
+        pad=RA_DEC_padding_for_star_selection,
+    wildcard_constraints:
+        master_region="WAVES_N|WAVES_S",
+        region_name="G12|G15|G23|H01|H03",
     output:
-        region_standard_star_catalogue="results/RegionCatalogues/{master_region}/{region_name}/StarCatalogues/{region_name}_standard_star_catalogue.csv",
-        region_guide_star_catalogue="RegionCatalogues/{master_region}/{region_name}/StarCatalogues/{region_name}_guide_star_catalogue.csv",
+        region_standard_star_catalogue="results/RegionCatalogues/{master_region}/{region_name}/{region_name}_standard_stars.csv",
+        region_guide_star_catalogue="results/RegionCatalogues/{master_region}/{region_name}/{region_name}_guide_stars.csv",
     script:
         "scripts/select_stars.py"
+
+
+rule make_cluster_star_catalogues:
+    message:
+        "Separating the master star catalogues we have for the clusters into individual regions"
+    input:
+        master_standard_star_cat="resources/ClusterStarCatalogues/HECTOR_CRS_fstars_RUN8_DR9.txt",
+        master_guide_star_cat="resources/ClusterStarCatalogues/HECTOR_CRS_guides_RUN8_DR9.txt",
+        region_information="resources/RegionInformation/all_regions.csv",
+    output:
+        region_standard_star_catalogues=expand(
+            "results/RegionCatalogues/HectorClusters/{region_name}/{region_name}_standard_stars.csv",
+            region_name=cluster_region_names,
+        ),
+        region_guide_star_catalogues=expand(
+            "results/RegionCatalogues/HectorClusters/{region_name}/{region_name}_guide_stars.csv",
+            region_name=cluster_region_names,
+        ),
+    params:
+        cluster_region_names=cluster_region_names,
+    script:
+        "scripts/separate_cluster_star_catalogues.py"
 
 
 # rule tile_region:
 #     message:
 #         "Running the tiling"
 #     input:
-#         region_catalogue="results/RegionCatalogues/{master_region}/{region_name}/{region_name}_Hector_target_galaxies.csv",
+#         region_target_catalogue="results/RegionCatalogues/{master_region}/{region_name}/{region_name}_Hector_target_galaxies.csv",
+#         region_guide_star_catalogue="RegionCatalogues/{master_region}/{region_name}/{region_name}_guide_star_catalogue.csv",
+#         regionstandard_star_catalogue="RegionCatalogues/{master_region}/{region_name}/{region_name}standard_star_catalogue.csv",
 #     output:
 #         tiling_complete_flag="results/Tiling/{master_region}/{region_name}/{region_name}_tiling_complete.flag",
 #     script:
