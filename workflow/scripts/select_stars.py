@@ -128,14 +128,28 @@ def panstarrs_SQL_query(
         main_gaia.phot_bp_mean_mag,
         main_gaia.phot_rp_mean_mag
         
-        FROM gaiadr3.panstarrs1_original_valid AS panstarrs
+        FROM gaiadr2.panstarrs1_original_valid AS panstarrs
 
-        JOIN gaiadr3.panstarrs1_best_neighbour as matchy
+        JOIN gaiadr2.panstarrs1_best_neighbour as matchy
         ON matchy.original_ext_source_id = panstarrs.obj_id
     
-        JOIN gaiadr3.gaia_source AS main_gaia ON main_gaia.source_id = matchy.source_id
+        JOIN gaiadr2.gaia_source AS main_gaia ON main_gaia.source_id = matchy.source_id
         
-        WHERE (panstarrs.ra > {min_RA}) AND (panstarrs.ra < {max_RA}) AND (panstarrs.dec > {min_DEC}) AND (panstarrs.dec < {max_DEC}) AND (main_gaia.pmra  > -100) AND (main_gaia.pmra < 100) AND (main_gaia.pmdec > -100) AND (main_gaia.pmdec < 100) AND (panstarrs.r_mean_psf_mag > {brightest_magnitude}) AND (panstarrs.r_mean_psf_mag < {faintest_magnitude})
+        WHERE (panstarrs.ra > {min_RA})
+        AND (panstarrs.ra < {max_RA})
+        AND (panstarrs.dec > {min_DEC})
+        AND (panstarrs.dec < {max_DEC})
+        AND (main_gaia.pmra  > -100)
+        AND (main_gaia.pmra < 100)
+        AND (main_gaia.pmdec > -100)
+        AND (main_gaia.pmdec < 100)
+        AND (panstarrs.r_mean_psf_mag > {brightest_magnitude})
+        AND (panstarrs.r_mean_psf_mag < {faintest_magnitude})
+        AND (panstarrs.g_mean_psf_mag IS NOT NULL)
+        AND (panstarrs.r_mean_psf_mag IS NOT NULL)
+        AND (panstarrs.i_mean_psf_mag IS NOT NULL)
+        AND (panstarrs.z_mean_psf_mag IS NOT NULL)
+        AND (panstarrs.y_mean_psf_mag IS NOT NULL)
 
         ORDER BY r_mean_psf_mag ASC
         """
