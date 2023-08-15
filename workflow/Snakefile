@@ -207,7 +207,7 @@ rule separate_into_subregions:
         "scripts/separate_catalogues_into_regions.py"
 
 
-rule make_WAVES_star_catalogues:
+rule make_star_catalogues:
     message:
         "Selecting guide stars and standard stars for the WAVES regions"
     input:
@@ -230,9 +230,6 @@ rule make_WAVES_star_catalogues:
         faintest_magnitude=faintest_magnitude,
         date_for_observations=date_for_observations,
         pad=RA_DEC_padding_for_star_selection,
-    wildcard_constraints:
-        master_region="WAVES_N|WAVES_S",
-        region_name="G12|G15|G23|H01|H03",
     output:
         region_standard_star_catalogue="results/RegionCatalogues/{master_region}/{region_name}/{region_name}_standard_stars.csv",
         region_guide_star_catalogue="results/RegionCatalogues/{master_region}/{region_name}/{region_name}_guide_stars.csv",

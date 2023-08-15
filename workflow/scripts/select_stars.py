@@ -218,6 +218,11 @@ if __name__ == "__main__":
         query_source = "PANSTARRS"
     elif smk.wildcards["master_region"] == "WAVES_S":
         query_source = "skymapper"
+    elif smk.wildcards["master_region"] == "HectorClusters":
+        if smk.wildcards["region_name"] in (["A0085", "A0119", "A0151", "A2399"]):
+            query_source = "PANSTARRS"
+        else:
+            query_source = "skymapper"
     else:
         raise NameError("Not sure where to get these stars from!")
 
@@ -346,17 +351,17 @@ if __name__ == "__main__":
     hexabundle_stars = df.loc[(~guide_star_mask) & (df.r_psf > 16)].copy()
 
     # Now select standard stars, sorting by their "priority" values (i.e. colours like an F star)
-    if smk.wildcards["master_region"] == "WAVES_N":
+    if query_source == "PANSTARRS":
         hexabundle_stars["StandardStar_X_Value"] = standard_star_priority_panstarrs(
             hexabundle_stars
         )
-    elif smk.wildcards["master_region"] == "WAVES_S":
+    elif query_source == "skymapper":
         hexabundle_stars["StandardStar_X_Value"] = standard_star_priority_skymapper(
             hexabundle_stars
         )
     else:
         raise NameError(
-            f'master region must be one of WAVES_S or WAVES_N, currently {smk.wildcards["master_region"]}'
+            f"Query_source must be one of PANSTARRS or skymapper; currently {query_source}"
         )
 
     # Now only keep standard stars with small values of priority
