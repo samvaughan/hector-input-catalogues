@@ -15,7 +15,7 @@ import utils
 
 # import scipy.stats as stats
 
-smk = snakemake
+smk = snakemake  # noqa
 
 config_filename = smk.input.target_selection_config_file
 
@@ -60,7 +60,7 @@ target_df["EO_wind_galaxy"] = eo_wind_mask
 
 # Now make the priority and number of obs columns
 target_df["priority"] = 4
-target_df['N_observations_to_complete'] = 1
+target_df["N_observations_to_complete"] = 1
 
 # If we're in the clusters, downweight things within 1 r200 or outside 2R200, especially if they're red
 if smk.wildcards["master_region"] == "HectorClusters":

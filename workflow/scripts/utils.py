@@ -14,6 +14,8 @@ from numpy.typing import ArrayLike
 import typing
 from astropy.coordinates import SkyCoord
 import astropy.units as u
+from astropy.table import Table
+from astropy.io import fits
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import calc_kcor
@@ -109,7 +111,6 @@ def match_catalogues(
 
 
 def select_MW_analogues(df):
-
     mwa_mask = (
         (10.5 < df["Mstar"])
         & (df["Mstar"] < 10.9)
@@ -121,28 +122,24 @@ def select_MW_analogues(df):
 
 
 def select_one_to_two_r200(df):
-
     mask = (df["r_on_rtwo"] > 1) & (df["r_on_rtwo"] < 2)
 
     return mask
 
 
 def select_within_r200(df):
-
     mask = df["r_on_rtwo"] < 1
 
     return mask
 
 
 def select_outside_2r200(df):
-
     mask = df["r_on_rtwo"] > 2
 
     return mask
 
 
 def select_edge_on_wind_galaxies(df):
-
     wind_mask = (1 - df["Ellipticity_r"] < 0.5) & (df["g_m_i"] < 0.6)
 
     return wind_mask
@@ -196,7 +193,6 @@ def z_over_sigma_z(x):
 
 
 def k_corrected_r_band_abs_mag(df, cosmo):
-
     # Calculate the absolute R-band magnitude, including a K correction
     k_cors = calc_kcor.calc_kcor("r", df.z, "g - r", df.mag_g - df.mag_r)
     abs_mag_r = (
@@ -207,7 +203,6 @@ def k_corrected_r_band_abs_mag(df, cosmo):
 
 
 def get_membership_prob(samples, data):
-
     membership_prob = 1 - np.exp(
         samples.loc[:, "log_Pr[1]":f"log_Pr[{data['N']}]"].mean()
     )
@@ -244,7 +239,7 @@ def plot_red_sequence(samples, data, mean_abs_mag):
 
     # Make some plots
     # Firstly, the red sequence membership probability on the color/magnitude diagram
-    plt.style.use("publication")
+    # plt.style.use("publication")
     fig, ax = plt.subplots(figsize=(14, 6))
     ax.scatter(
         data["x"] + mean_abs_mag,
@@ -295,3 +290,9 @@ def plot_red_sequence(samples, data, mean_abs_mag):
     ax.set_ylim(0.0, 1.2)
 
     return fig, ax
+
+
+def load_FITS_table_in_pandas(filename):
+    hdu = fits.open(filename)
+    t = Table(hdu[1].data)
+    return t.to_pandas()

@@ -7,7 +7,7 @@ from cmdstanpy import CmdStanModel
 import astropy.units as u
 import calc_kcor
 
-smk = snakemake
+smk = snakemake  # noqa
 cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
 
 run_on_subset = True

@@ -7,7 +7,7 @@ from pathlib import Path
 import hop.misc.misc_tools as misc_tools
 import shutil
 
-smk = snakemake
+smk = snakemake  # noqa
 
 # Load out config file
 config_dictionary = misc_tools._load_config(smk.input.config_file)

@@ -13,14 +13,12 @@ import pandas as pd
 import astropy.units as u
 from astropy.cosmology import FlatLambdaCDM
 import utils
-import pandas_tools as P
 import numpy as np
 from cmdstanpy import CmdStanModel
 
 
 if __name__ == "__main__":
-
-    smk = snakemake
+    smk = snakemake  # noqa
     sep_constraint_arcsec = smk.params.sep_constraint_arcsec
 
     # Make the desired cosmology
@@ -79,7 +77,7 @@ if __name__ == "__main__":
 
     # Remove SAMI
     print("Removing SAMI galaxies...")
-    sami = P.load_FITS_table_in_pandas(smk.input.SAMI_catalogue)
+    sami = utils.load_FITS_table_in_pandas(smk.input.SAMI_catalogue)
 
     sami_catalogue = (sami.RA.values, sami.DEC.values)
     cluster_catalogue_RA_DEC = (
@@ -121,7 +119,7 @@ if __name__ == "__main__":
 
     # Fit the stan model
     sm = CmdStanModel(stan_file=smk.input.stan_file)
-    fit = sm.sample(data=data)
+    fit = sm.sample(data=data, show_console=True)
 
     # Get the results as a pandas dataframe
     samples = fit.draws_pd()
@@ -154,8 +152,10 @@ if __name__ == "__main__":
     cluster_catalogue["RS_member_2sig_scatter"] = cluster_catalogue[
         "RS_member_2sig_scatter"
     ].astype(bool)
-    
-    cluster_catalogue['approximate_SB_r'] = cluster_catalogue['mag_r'] + 2.5 * (np.log10(np.pi) + 2 * np.log10(cluster_catalogue['Re']))
+
+    cluster_catalogue["approximate_SB_r"] = cluster_catalogue["mag_r"] + 2.5 * (
+        np.log10(np.pi) + 2 * np.log10(cluster_catalogue["Re"])
+    )
 
     print("\tDone!")
 

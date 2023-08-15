@@ -5,7 +5,7 @@ Do this using RA and DEC limits set in a separate file (resources/RegionInformat
 """
 import pandas as pd
 
-smk = snakemake
+smk = snakemake  # noqa
 region_information = pd.read_csv(smk.input.region_information, index_col="name")
 
 # Load in all the catalogues we have
@@ -18,7 +18,6 @@ for catalogue in smk.input.master_catalogues:
 output_filenames = smk.output.all_region_catalogues
 
 for (region, row), filename in zip(region_information.iterrows(), output_filenames):
-
     print(f"Saving {region} to {filename}:")
     region_mask = (
         (master_df.RA > row.min_RA)

@@ -12,14 +12,12 @@ import pandas as pd
 import astropy.units as u
 from astropy.cosmology import FlatLambdaCDM
 import utils
-import pandas_tools as P
 import numpy as np
 from cmdstanpy import CmdStanModel
 
 
 if __name__ == "__main__":
-
-    smk = snakemake
+    smk = snakemake  # noqa
     sep_constraint_arcsec = smk.params.sep_constraint_arcsec
 
     # Make the desired cosmology
@@ -65,7 +63,7 @@ if __name__ == "__main__":
     )
     cluster_catalogue["ellipticity"] = 1 - cluster_catalogue["B_on_A"]
     print("\tDone")
-    
+
     # print("Removing a handful of redshift outliers...")
     # Add the cluster redshifts for each object
     cluster_catalogue["cluster_redshift"] = cluster_catalogue.apply(
@@ -87,20 +85,22 @@ if __name__ == "__main__":
         & (cluster_catalogue["mem_flag"] == 0)
         & (cluster_catalogue["r_on_rtwo"] < 2.5)
         & (cluster_catalogue["logMstarProxy_LS"] < 9.5)
-        & (cluster_catalogue['z'] < cluster_catalogue['cluster_redshift'])
+        & (cluster_catalogue["z"] < cluster_catalogue["cluster_redshift"])
     )
 
     good_data_mask = good_data_mask_foreground | good_data_mask_cluster_members
     cluster_catalogue = cluster_catalogue.loc[good_data_mask]
     print("\tDone")
-    
+
     # Fix the cluster redshift column for non members
     # Otherwise the foreground things almost never pass the target selection
-    cluster_catalogue.loc[good_data_mask_foreground, 'cluster_redshift'] = cluster_catalogue.loc[good_data_mask_foreground, 'z']
+    cluster_catalogue.loc[
+        good_data_mask_foreground, "cluster_redshift"
+    ] = cluster_catalogue.loc[good_data_mask_foreground, "z"]
 
     # Remove SAMI
     print("Removing SAMI galaxies...")
-    sami = P.load_FITS_table_in_pandas(smk.input.SAMI_catalogue)
+    sami = utils.load_FITS_table_in_pandas(smk.input.SAMI_catalogue)
 
     sami_catalogue = (sami.RA.values, sami.DEC.values)
     cluster_catalogue_RA_DEC = (
@@ -184,9 +184,11 @@ if __name__ == "__main__":
     cluster_catalogue["RS_member_2sig_scatter"] = cluster_catalogue[
         "RS_member_2sig_scatter"
     ].astype(bool)
-    
+
     # Add the approximate surface brightnesses
-    cluster_catalogue['approximate_SB_r'] = cluster_catalogue['mag_r'] + 2.5 * (np.log10(np.pi) + 2 * np.log10(cluster_catalogue['Re']))
+    cluster_catalogue["approximate_SB_r"] = cluster_catalogue["mag_r"] + 2.5 * (
+        np.log10(np.pi) + 2 * np.log10(cluster_catalogue["Re"])
+    )
 
     print("\tDone!")
 

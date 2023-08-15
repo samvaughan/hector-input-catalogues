@@ -13,14 +13,11 @@ This script does the following things:
 import pandas as pd
 import astropy.units as u
 import numpy as np
-import pandas_tools as P
-from astropy.cosmology import FlatLambdaCDM
 import utils
-
+from astropy.cosmology import FlatLambdaCDM
 
 if __name__ == "__main__":
-
-    smk = snakemake
+    smk = snakemake  # noqa
     sep_constraint_arcsec = smk.params.sep_constraint_arcsec
 
     # Make the desired cosmology
@@ -121,7 +118,7 @@ if __name__ == "__main__":
     ]
     all_photometry = all_photometry.drop(cols_to_drop, axis=1)
     print("\tDone")
-    
+
     print("Adding the stellar masses...")
     all_photometry["Mstar"] = utils.apply_Bryant_Mstar_eqtn(
         all_photometry.z.values,
@@ -130,10 +127,10 @@ if __name__ == "__main__":
         cosmology,
     )
     print("\tDone")
-    
+
     print("Adding the ellipticity...")
     # Make an ellipticity column from the axis ratio
-    all_photometry['ellipticity'] = 1 - all_photometry['axrat']
+    all_photometry["ellipticity"] = 1 - all_photometry["axrat"]
     print("\tDone")
 
     # Split the catalogues up again
@@ -142,7 +139,7 @@ if __name__ == "__main__":
 
     print("Removing SAMI galaxies from WAVES North...")
     # Now remove the SAMI galaxies from WAVES_N
-    sami = P.load_FITS_table_in_pandas(smk.input.SAMI_catalogue)
+    sami = utils.load_FITS_table_in_pandas(smk.input.SAMI_catalogue)
 
     sami_catalogue = (sami.RA.values, sami.DEC.values)
     waves_N_catalogue = (
@@ -160,10 +157,18 @@ if __name__ == "__main__":
         f"\tRemoved {np.sum(sep_constraint)} galaxies from the WAVES North catalogue which are also in the SAMI catalogue"
     )
     print("\tDone")
-    
+
     # Add in the approximate surface brightness values
-    final_WAVES_N_catalogue['approximate_SB_r'] = final_WAVES_N_catalogue['mag_rt'] + 2.5 * np.log10(np.pi * final_WAVES_N_catalogue['R50'] * final_WAVES_N_catalogue['R50'])
-    final_WAVES_S_catalogue['approximate_SB_r'] = final_WAVES_S_catalogue['mag_rt'] + 2.5 * np.log10(np.pi * final_WAVES_S_catalogue['R50'] * final_WAVES_S_catalogue['R50'])
+    final_WAVES_N_catalogue["approximate_SB_r"] = final_WAVES_N_catalogue[
+        "mag_rt"
+    ] + 2.5 * np.log10(
+        np.pi * final_WAVES_N_catalogue["R50"] * final_WAVES_N_catalogue["R50"]
+    )
+    final_WAVES_S_catalogue["approximate_SB_r"] = final_WAVES_S_catalogue[
+        "mag_rt"
+    ] + 2.5 * np.log10(
+        np.pi * final_WAVES_S_catalogue["R50"] * final_WAVES_S_catalogue["R50"]
+    )
 
     # Finally, move the things we've put around 350 degrees back to be negative in RA
     final_WAVES_S_catalogue.loc[final_WAVES_S_catalogue.RAmax > 300, "RAmax"] -= 360
