@@ -112,9 +112,9 @@ def standard_star_priority_panstarrs(df):
 
 
 def panstarrs_SQL_query(
-    min_RA, max_RA, min_DEC, max_DEC, faintest_magnitude, brightest_magnitude
+    min_RA, max_RA, min_DEC, max_DEC, faintest_magnitude, brightest_magnitude, N=500000
 ):
-    panstarrs_query = f"""SELECT TOP 500000
+    panstarrs_query = f"""SELECT TOP {N}
         
         panstarrs.*,
         matchy.source_id,
@@ -128,12 +128,12 @@ def panstarrs_SQL_query(
         main_gaia.phot_bp_mean_mag,
         main_gaia.phot_rp_mean_mag
         
-        FROM gaiadr2.panstarrs1_original_valid AS panstarrs
+        FROM gaiadr3.panstarrs1_original_valid AS panstarrs
 
-        JOIN gaiadr2.panstarrs1_best_neighbour as matchy
+        JOIN gaiadr3.panstarrs1_best_neighbour as matchy
         ON matchy.original_ext_source_id = panstarrs.obj_id
     
-        JOIN gaiadr2.gaia_source AS main_gaia ON main_gaia.source_id = matchy.source_id
+        JOIN gaiadr3.gaia_source AS main_gaia ON main_gaia.source_id = matchy.source_id
         
         WHERE (panstarrs.ra > {min_RA}) AND (panstarrs.ra < {max_RA}) AND (panstarrs.dec > {min_DEC}) AND (panstarrs.dec < {max_DEC}) AND (main_gaia.pmra  > -100) AND (main_gaia.pmra < 100) AND (main_gaia.pmdec > -100) AND (main_gaia.pmdec < 100) AND (panstarrs.r_mean_psf_mag > {brightest_magnitude}) AND (panstarrs.r_mean_psf_mag < {faintest_magnitude})
 
@@ -144,9 +144,9 @@ def panstarrs_SQL_query(
 
 
 def skymapper_SQL_query(
-    min_RA, max_RA, min_DEC, max_DEC, faintest_magnitude, brightest_magnitude
+    min_RA, max_RA, min_DEC, max_DEC, faintest_magnitude, brightest_magnitude, N=500000
 ):
-    skymapper_query = f"""SELECT TOP 500000
+    skymapper_query = f"""SELECT TOP {N}
         
         skymapper.*,
         main_gaia.ref_epoch,
@@ -161,9 +161,25 @@ def skymapper_SQL_query(
         
         FROM external.skymapperdr2_master AS skymapper
         
-        JOIN gaiadr2.gaia_source AS main_gaia ON main_gaia.source_id = skymapper.gaia_dr2_id1
+        JOIN gaiadr3.gaia_source AS main_gaia ON main_gaia.source_id = skymapper.gaia_dr2_id1
         
-        WHERE (skymapper.raj2000 > {min_RA}) AND (skymapper.raj2000 < {max_RA}) AND (skymapper.dej2000 < {max_DEC}) AND (skymapper.dej2000 > {min_DEC}) AND (main_gaia.pmra  > -100) AND (main_gaia.pmra < 100) AND (main_gaia.pmdec > -100) AND (main_gaia.pmdec < 100) AND (skymapper.r_psf > {brightest_magnitude}) AND (skymapper.r_psf < {faintest_magnitude})
+        WHERE (skymapper.raj2000 > {min_RA})
+        AND (skymapper.raj2000 < {max_RA})
+        AND (skymapper.dej2000 < {max_DEC})
+        AND (skymapper.dej2000 > {min_DEC})
+        AND (main_gaia.pmra  > -100)
+        AND (main_gaia.pmra < 100)
+        AND (main_gaia.pmdec > -100)
+        AND (main_gaia.pmdec < 100)
+        AND (skymapper.r_psf > {brightest_magnitude})
+        AND (skymapper.r_psf < {faintest_magnitude})
+        AND (skymapper.flags = 0)
+        AND (skymapper.nimaflags = 0)
+        AND (skymapper.u_ngood > 0)
+        AND (skymapper.g_ngood > 0)
+        AND (skymapper.r_ngood > 0)
+        AND (skymapper.i_ngood > 0)
+        AND (skymapper.z_ngood > 0)
 
         ORDER BY r_psf ASC
         """
@@ -184,10 +200,17 @@ if __name__ == "__main__":
     brightest_magnitude = smk.params.brightest_magnitude
     faintest_magnitude = smk.params.faintest_magnitude
 
+    if smk.wildcards["master_region"] == "WAVES_N":
+        query_source = "PANSTARRS"
+    elif smk.wildcards["master_region"] == "WAVES_S":
+        query_source = "skymapper"
+    else:
+        raise NameError("Not sure where to get these stars from!")
+
     # This is the SQL query we use to select stars from APASS and their match to GAMA.
     # If WAVES North, we use PANSTARRS. Otherwise we use skymapper
     # For the clusters, we use Skymapper for all fields except A0085, A0119 and A2399
-    if smk.wildcards["master_region"] == "WAVES_N":
+    if query_source == "PANSTARRS":
         sql_query = panstarrs_SQL_query(
             min_RA=min_RA,
             max_RA=max_RA,
@@ -197,7 +220,7 @@ if __name__ == "__main__":
             brightest_magnitude=brightest_magnitude,
         )
         print("Running the GAIA/PANSTARRS query...")
-    elif smk.wildcards["master_region"] == "WAVES_S":
+    elif query_source == "skymapper":
         # Fix an issue we have because the G23 region has a negative RA in our region table
         if smk.wildcards["region_name"] == "G23":
             min_RA += 360
@@ -217,7 +240,7 @@ if __name__ == "__main__":
         print("Running the GAIA/SKYMAPPER query...")
     else:
         raise NameError(
-            f'master region must be one of WAVES_S or WAVES_N, currently {smk.wildcards["master_region"]}'
+            f"The query source must be one of PANSTARRS or skymapper: currently {query_source}"
         )
 
     # Run the jobs to match to Skymapper/PANSTARRS and GAIA
@@ -228,7 +251,7 @@ if __name__ == "__main__":
     df = r.to_pandas()
 
     # If we have a panstarrs table, rename one way
-    if smk.wildcards["master_region"] == "WAVES_N":
+    if query_source == "PANSTARRS":
         df.rename(
             columns=dict(
                 ra="RA",
@@ -243,7 +266,7 @@ if __name__ == "__main__":
             inplace=True,
         )
         df.dropna(inplace=True, subset=["g_psf", "r_psf", "i_psf", "z_psf", "y_psf"])
-    elif smk.wildcards["master_region"] == "WAVES_S":
+    elif query_source == "skymapper":
         # Otherwise, rename according to the skymapper column names
         df.rename(
             columns=dict(raj2000="RA", dej2000="DEC", object_id="ID"), inplace=True
@@ -251,7 +274,7 @@ if __name__ == "__main__":
         df.dropna(inplace=True, subset=["u_psf", "g_psf", "r_psf", "i_psf", "z_psf"])
     else:
         raise NameError(
-            f'master region must be one of WAVES_S or WAVES_N, currently {smk.wildcards["master_region"]}'
+            f"The query source must be one of PANSTARRS or skymapper: currently {query_source}"
         )
 
     # Now remove stars which have close companions (i.e. binaries, chance alignments, etc)
