@@ -1,0 +1,241 @@
+library(tidyverse)
+library(ggplot2)
+library(arrow)
+library(glue)
+library(ggforce)
+library(paletteer)
+library(gt)
+library(gtExtras)
+
+base_folder <- "/Users/samvaughan/Science/Hector/Targets/HectorInputCatalogues/results/MasterCatalogues/HectorClusters/"
+
+cluster_galaxies <- read_parquet(glue("{base_folder}/HectorClusters_master_target_selected.parquet"))
+cluster_galaxies_inc_foreground <- read_parquet(glue("{base_folder}/HectorClusters_target_selected_including_foreground.parquet"))
+
+cluster_info <- read_table("resources/ClusterInformation/HectorCluster_Information.txt")
+
+halo_mass <- function(z, sigma) {
+    # Halo Mass function from Matt. Values returned are log(M/Msun)
+    # Note that this is only approximate!
+    hz <- 0.7 * sqrt(0.3 * (1. + z)**3 + 0.7)
+    alpha <- 0.3361
+    norm <- 1082.9
+    halo_m <- (1. / (hz)) * (sigma / norm)**(1. / alpha) * 1e15
+
+    return(log10(halo_m))
+}
+
+cluster_info <- cluster_info %>%
+    mutate(halo_mass = halo_mass(z, sigma)) %>%
+    arrange(halo_mass) %>%
+    select(
+        clus,
+        RA_BCG,
+        dec_BCG,
+        z_BCG,
+        sigma,
+        halo_mass
+    )
+
+# Add the Halo masses
+joined <- left_join(cluster_galaxies, cluster_info, by = join_by(ClusterName == clus))
+
+mass_plot <- ggplot(
+    joined,
+    aes(x = Mstar, y = as.numeric(RS_member))
+) +
+    geom_point(
+        aes(colour = ClusterName),
+        position = position_jitternormal(sd_y = 0.05),
+        size = 3
+    ) +
+    stat_summary_bin(
+        aes(colour = ClusterName),
+        fun = mean,
+        geom = "line",
+        linewidth = 1.,
+        bins = 7,
+        alpha = 0.3
+    ) +
+    stat_summary_bin(
+        aes(colour = ClusterName),
+        fun = mean,
+        geom = "point",
+        size = 3,
+        bins = 7,
+        alpha = 0.3
+    ) +
+    stat_summary_bin(
+        fun.data = mean_cl_boot,
+        geom = "pointrange",
+        size = 2,
+        bins = 7
+    ) +
+    stat_summary_bin(
+        fun.data = mean_cl_boot,
+        geom = "line",
+        linewidth = 3.0,
+        bins = 7
+    ) +
+    labs(
+        x = "Mass",
+        y = "Red Sequence member"
+    ) +
+    scale_y_continuous(breaks = c(0.0, 1.0)) +
+    theme_bw(base_size = 20) +
+    scale_fill_paletteer_d("ggsci::springfield_simpsons") +
+    scale_colour_paletteer_d("ggsci::springfield_simpsons")
+
+ggsave("~/Desktop/red_sequence_against_mass.png", plot = mass_plot)
+
+radius_plot <- ggplot(
+    joined,
+    aes(
+        x = r_on_rtwo,
+        y = as.numeric(RS_member)
+    )
+) +
+    geom_point(aes(colour = ClusterName),
+        position = position_jitternormal(sd_y = 0.05, sd_x = 0.0),
+        size = 3
+    ) +
+    stat_summary_bin(
+        aes(colour = ClusterName),
+        fun = mean,
+        geom = "line",
+        linewidth = 1.5,
+        bins = 7,
+        alpha = 0.3
+    ) +
+    stat_summary_bin(
+        aes(colour = ClusterName),
+        fun = mean,
+        geom = "point",
+        size = 3,
+        bins = 7,
+        alpha = 0.3
+    ) +
+    stat_summary_bin(
+        colour = "black",
+        fun = mean,
+        geom = "line",
+        linewidth = 2,
+        bins = 7
+    ) +
+    stat_summary_bin(
+        colour = "black",
+        fun.data = "mean_cl_boot",
+        geom = "pointrange",
+        size = 2,
+        bins = 7
+    ) +
+    labs(
+        x = "Clustercentric Radius / R200",
+        y = "Red-Sequence Member"
+    ) +
+    scale_y_continuous(breaks = c(0.0, 1.0)) +
+    theme_bw(base_size = 20) +
+    scale_colour_paletteer_d("ggsci::springfield_simpsons")
+
+ggsave("~/Desktop/red_sequence_against_radius.png", plot = radius_plot)
+
+
+mass_table <- cluster_galaxies %>%
+    mutate(
+        RS_member = as.numeric(RS_member),
+        bin = cut(Mstar, breaks = 8)
+    ) %>%
+    group_by(bin) %>%
+    summarize(
+        bin_min = min(Mstar),
+        bin_max = max(Mstar),
+        N_red = sum(RS_member),
+        N_blue = n() - N_red,
+        prop = mean(RS_member)
+    ) %>%
+    select(-bin) %>%
+    gt() %>%
+    tab_header(
+        title = "Red sequence galaxies by stellar mass",
+        subtitle = "Averaged across all clusters"
+    ) %>%
+    cols_label(
+        bin_min = html("low"),
+        bin_max = html("high"),
+        N_red = html("Red"),
+        N_blue = html("Blue"),
+        prop = html("Red Fraction")
+    ) %>%
+    fmt_number(
+        columns = c("bin_min", "bin_max"),
+        decimals = 1
+    ) %>%
+    fmt_percent(
+        columns = c("prop"),
+        decimals = 1
+    ) %>%
+    tab_spanner(
+        label = "Mass Bin",
+        columns = c(bin_min, bin_max)
+    ) %>%
+    opt_align_table_header(align = "left") %>%
+    cols_align(align = "center") %>%
+    grand_summary_rows(
+        columns = c("N_red", "N_blue"),
+        fns = list(label = "Total", id = "totals", fn = "sum")
+    ) %>%
+    gt_theme_espn()
+
+
+cluster_summary <- joined %>%
+    mutate(
+        RS_member = as.numeric(RS_member)
+    ) %>%
+    group_by(ClusterName) %>%
+    summarize(
+        HaloMass = mean(halo_mass),
+        N_red = sum(RS_member),
+        N_blue = n() - N_red,
+        Total = n(),
+        prop = mean(RS_member)
+    ) %>%
+    arrange(HaloMass)
+
+
+cluster_table <- gt(cluster_summary) %>%
+    tab_header(
+        title = "Galaxy counts by cluster",
+        subtitle = "Halo Masses are approximate"
+    ) %>%
+    cols_label(
+        ClusterName = html("Name"),
+        HaloMass = html("Halo Mass"),
+        Total = html("Total"),
+        N_red = html("Red"),
+        N_blue = html("Blue"),
+        prop = html("Red Fraction")
+    ) %>%
+    fmt_number(
+        columns = c("HaloMass"),
+        decimals = 1
+    ) %>%
+    fmt_percent(
+        columns = c("prop"),
+        decimals = 1
+    ) %>%
+    opt_align_table_header(align = "left") %>%
+    cols_align(align = "left", columns = 1) %>%
+    cols_align(align = "center", columns = -1) %>%
+    grand_summary_rows(
+        columns = c("N_red", "N_blue", "Total"),
+        fns = list(label = "Total", id = "totals", fn = "sum")
+    ) %>%
+    gt_theme_espn()
+
+
+ggplot(joined, aes(
+    x = r_on_rtwo,
+    y = Mstar,
+    color = ClusterName
+)) +
+    geom_point()

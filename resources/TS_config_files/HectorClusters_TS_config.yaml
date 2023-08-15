@@ -10,8 +10,9 @@ BoundaryType: /Users/samvaughan/Science/Hector/HectorObservationPipeline/Selecti
 zlimit: 0.1
 MstarMin: 8
 MstarMax: 12
-SparseFunction: 1
-MSparseCut1: 10.0
+SparseFunction:
+  name: "RedSequence"
+  fraction_red_to_keep: 0.5
 minRe: 1.5
 
 # Name of the input source catalogue - mainly for plotting
@@ -24,22 +25,22 @@ selection: (table.iloc[:,23]>0) & (table.iloc[:,75]>0) & (table.iloc[:,68]>0)
 
 # NOTE: Here we're using the **cluster** redshift as the redshiftf for the target selection, **NOT** the individual galaxy redshift. However, we do add back in the individual galaxy redshift into the tile files afterwards (see the run_target_selection.py script)
 Columns:
-  CATID: 1
+  ID: 1
   RA: 3
   DEC: 4
   Re: 23
   z: 75
   Mstar: 68
-  GAL_MAG_U: 58
-  GAL_MAG_G: 8
-  GAL_MAG_R: 9
-  GAL_MAG_I: 66
-  GAL_MAG_Z: 10
+  u_mag: 58
+  g_mag: 8
+  r_mag: 9
+  i_mag: 66
+  z_mag: 10
   GAL_MU_E_U: None
   GAL_MU_0_U: None
   GAL_MU_E_G: None
   GAL_MU_0_G: None
-  GAL_MU_E_R: None
+  GAL_MU_E_R: 80
   GAL_MU_0_R: None
   GAL_MU_E_I: None
   GAL_MU_0_I: None
@@ -50,6 +51,10 @@ Columns:
   MassHIpred: None
   WALLABYflag: None
   Dingoflag: None
+  RS_member: 79
+  r_on_rtwo: 5
+  ClusterName: 2
+  ClusterMember: 6
 
 total_area: 0
 
@@ -66,15 +71,15 @@ configure_field: True
 
 tiling_type: greedy
 allocation_type: random
-proximity: 220 # This is  14.5*15.008
+proximity: 240 # Edited May 2023, increased from 220 # This is  14.5*15.008
 Nsel: 19
 N_targets_per_Hector_field: 19
 Nsel_guides: 100
 Nsel_standards: 100
 
 TwoDF_FOV_radius: 1.0
-exclusion_zone: 220 # This is 14.5mm in arcseconds: 14.5 * 15.008
-Hector_FOV_outer_radius: 0.9318
+exclusion_zone: 240 # Edited May 2023, increased from 220 # This is 14.5mm in arcseconds: 14.5 * 15.008
+Hector_FOV_outer_radius: 0.9 # Edited May 2023, decreased from 0.9318
 Hector_FOV_inner_radius: 0.0
 
 fraction_to_reobserve: 0.0

@@ -13,6 +13,50 @@ import astropy.units as u
 import scipy.spatial
 
 
+def assign_priorities(df):
+    priorities = pd.Series(data=np.zeros(len(df)), name="priority", index=df.index)
+
+    m8 = (df["r_mag"] <= 17) & (df["StandardStar_X_Value"] <= 0.6)
+    m7 = (
+        (df["r_mag"] > 17) & (df["r_mag"] <= 17.5) & (df["StandardStar_X_Value"] <= 0.6)
+    )
+    m6 = (
+        (df["r_mag"] > 17.5) & (df["r_mag"] <= 18) & (df["StandardStar_X_Value"] <= 0.6)
+    )
+
+    m5 = (
+        (df["r_mag"] <= 17)
+        & (df["StandardStar_X_Value"] > 0.6)
+        & (df["StandardStar_X_Value"] <= 1.0)
+    )
+    m4 = (
+        (df["r_mag"] > 17)
+        & (df["r_mag"] <= 17.5)
+        & (df["StandardStar_X_Value"] > 0.6)
+        & (df["StandardStar_X_Value"] <= 1.0)
+    )
+    m3 = (
+        (df["r_mag"] > 17.5)
+        & (df["r_mag"] <= 18.0)
+        & (df["StandardStar_X_Value"] > 0.6)
+        & (df["StandardStar_X_Value"] <= 1.0)
+    )
+
+    m2 = (df["r_mag"] <= 17) & (df["StandardStar_X_Value"] > 1)
+    m1 = (df["r_mag"] > 17) & (df["StandardStar_X_Value"] > 1)
+
+    priorities.loc[m8] = 8
+    priorities.loc[m7] = 7
+    priorities.loc[m6] = 6
+    priorities.loc[m5] = 5
+    priorities.loc[m4] = 4
+    priorities.loc[m3] = 3
+    priorities.loc[m2] = 2
+    priorities.loc[m1] = 1
+
+    return priorities
+
+
 def standard_star_priority_skymapper(df):
     """Add a priority column for the SkyMapper stars. This priority is minimised for F-type stars (hopefully!)
 
@@ -70,7 +114,6 @@ def standard_star_priority_panstarrs(df):
 def panstarrs_SQL_query(
     min_RA, max_RA, min_DEC, max_DEC, faintest_magnitude, brightest_magnitude
 ):
-
     panstarrs_query = f"""SELECT TOP 500000
         
         panstarrs.*,
@@ -103,7 +146,6 @@ def panstarrs_SQL_query(
 def skymapper_SQL_query(
     min_RA, max_RA, min_DEC, max_DEC, faintest_magnitude, brightest_magnitude
 ):
-
     skymapper_query = f"""SELECT TOP 500000
         
         skymapper.*,
@@ -130,8 +172,7 @@ def skymapper_SQL_query(
 
 
 if __name__ == "__main__":
-
-    smk = snakemake
+    smk = snakemake  # noqa
     print(f"Region is {smk.wildcards['master_region']}: {smk.wildcards['region_name']}")
 
     min_RA = smk.params.min_RA - smk.params.pad
@@ -146,7 +187,6 @@ if __name__ == "__main__":
     # This is the SQL query we use to select stars from APASS and their match to GAMA.
     # If WAVES North, we use PANSTARRS. Otherwise we use skymapper
     if smk.wildcards["master_region"] == "WAVES_N":
-
         sql_query = panstarrs_SQL_query(
             min_RA=min_RA,
             max_RA=max_RA,
@@ -157,12 +197,11 @@ if __name__ == "__main__":
         )
         print("Running the GAIA/PANSTARRS query...")
     elif smk.wildcards["master_region"] == "WAVES_S":
-        
         # Fix an issue we have because the G23 region has a negative RA in our region table
-        if smk.wildcards['region_name'] == "G23":
+        if smk.wildcards["region_name"] == "G23":
             min_RA += 360
             max_RA += 360
-        
+
         sql_query = skymapper_SQL_query(
             min_RA=min_RA,
             max_RA=max_RA,
@@ -173,8 +212,10 @@ if __name__ == "__main__":
         )
         print("Running the GAIA/SKYMAPPER query...")
     else:
-        raise NameError(f'master region must be one of WAVES_S or WAVES_N, currently {smk.wildcards["master_region"]}')
-    
+        raise NameError(
+            f'master region must be one of WAVES_S or WAVES_N, currently {smk.wildcards["master_region"]}'
+        )
+
     # Run the jobs to match to Skymapper/PANSTARRS and GAIA
     job = Gaia.launch_job_async(sql_query)
     r = job.get_results()
@@ -205,7 +246,9 @@ if __name__ == "__main__":
         )
         df.dropna(inplace=True, subset=["u_psf", "g_psf", "r_psf", "i_psf", "z_psf"])
     else:
-        raise NameError(f'master region must be one of WAVES_S or WAVES_N, currently {smk.wildcards["master_region"]}')
+        raise NameError(
+            f'master region must be one of WAVES_S or WAVES_N, currently {smk.wildcards["master_region"]}'
+        )
 
     # Now remove stars which have close companions (i.e. binaries, chance alignments, etc)
     # The max separation is 30 arcseconds, converted to degrees
@@ -258,8 +301,8 @@ if __name__ == "__main__":
     print("Selecting stars and assigning priorities...")
     # Select guide stars
     guide_star_mask = (df.g_psf < 14.5) & (df.g_psf > 14.0)
-    guide_stars = df.loc[guide_star_mask]
-    hexabundle_stars = df.loc[(~guide_star_mask) & (df.r_psf > 14)]
+    guide_stars = df.loc[guide_star_mask].copy()
+    hexabundle_stars = df.loc[(~guide_star_mask) & (df.r_psf > 16)].copy()
 
     # Now select standard stars, sorting by their "priority" values (i.e. colours like an F star)
     if smk.wildcards["master_region"] == "WAVES_N":
@@ -271,10 +314,13 @@ if __name__ == "__main__":
             hexabundle_stars
         )
     else:
-        raise NameError(f'master region must be one of WAVES_S or WAVES_N, currently {smk.wildcards["master_region"]}')
+        raise NameError(
+            f'master region must be one of WAVES_S or WAVES_N, currently {smk.wildcards["master_region"]}'
+        )
+
     # Now only keep standard stars with small values of priority
-    standard_star_mask = hexabundle_stars["StandardStar_X_Value"] < 2
-    standard_stars = hexabundle_stars.loc[standard_star_mask]
+    standard_star_mask = hexabundle_stars["StandardStar_X_Value"] < 1.5
+    standard_stars = hexabundle_stars.loc[standard_star_mask].copy()
 
     # Rename columns to be consistent with other tables.
     column_renamer = dict(
@@ -291,11 +337,56 @@ if __name__ == "__main__":
         pmdec="pmDEC",
     )
 
+    # Now set up the column names that we need
     standard_stars.rename(columns=column_renamer, inplace=True)
     guide_stars.rename(columns=column_renamer, inplace=True)
 
-    standard_stars.to_csv(smk.output.region_standard_star_catalogue, index=False)
-    guide_stars.to_csv(smk.output.region_guide_star_catalogue, index=False)
+    # Add a couple more
+    standard_stars["type"] = 0
+    guide_stars["type"] = 2
+
+    # Add the zero columns we expect
+    standard_stars.loc[:, ["Mstar", "Re", "z", "GAL_MU_E_R", "y_mag"]] = 0.0
+
+    # And add the priorities
+    guide_stars["priority"] = 8
+    standard_stars["priority"] = assign_priorities(standard_stars)
+
+    # Finally, subtract 360 from the G23 stars
+    if smk.wildcards["region_name"] == "G23":
+        guide_stars.RA -= 360
+        standard_stars.RA -= 360
+
+    # Only save a subset of the columns
+    required_columns_standards = [
+        "ID",
+        "RA",
+        "DEC",
+        "g_mag",
+        "r_mag",
+        "i_mag",
+        "z_mag",
+        "y_mag",
+        "GAIA_g_mag",
+        "GAIA_bp_mag",
+        "GAIA_rp_mag",
+        "Mstar",
+        "Re",
+        "z",
+        "GAL_MU_E_R",
+        "pmRA",
+        "pmDEC",
+        "priority",
+        "type",
+    ]
+    required_columns_guides = ["ID", "RA", "DEC", "r_mag", "type", "pmRA", "pmDEC"]
+
+    standard_stars.loc[:, required_columns_standards].to_csv(
+        smk.output.region_standard_star_catalogue, index=False
+    )
+    guide_stars.loc[:, required_columns_guides].to_csv(
+        smk.output.region_guide_star_catalogue, index=False
+    )
     print(
         f"\tDone. Selected {len(standard_stars)} standard stars and {len(guide_stars)} guide stars for the region"
     )

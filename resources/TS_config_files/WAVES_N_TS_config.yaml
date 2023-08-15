@@ -10,8 +10,9 @@ BoundaryType: /Users/samvaughan/Science/Hector/HectorObservationPipeline/Selecti
 zlimit: 0.1
 MstarMin: 8
 MstarMax: 12
-SparseFunction: 1
-MSparseCut1: 10.0
+SparseFunction:
+  name: "FlatInMass"
+  MSparseCut1: 10.0
 minRe: 1.5
 
 # Name of the input source catalogue - mainly for plotting
@@ -22,22 +23,22 @@ selection: (table.iloc[:,16]>0) & (table.iloc[:,72]>0) & (table.iloc[:,81]>0)
 
 # Here we say which columns in the master catalogue correspond to which variables the survey simulator expects. Use None (no quotes) if they don't exist
 Columns:
-  CATID: 1
+  ID: 1
   RA: 8
   DEC: 9
   Re: 16
   z: 72
   Mstar: 81
-  GAL_MAG_U: 73
-  GAL_MAG_G: 74
-  GAL_MAG_R: 75
-  GAL_MAG_I: 76
-  GAL_MAG_Z: 24
+  u_mag: 73
+  g_mag: 74
+  r_mag: 75
+  i_mag: 76
+  z_mag: 24
   GAL_MU_E_U: None
   GAL_MU_0_U: None
   GAL_MU_E_G: None
   GAL_MU_0_G: None
-  GAL_MU_E_R: None
+  GAL_MU_E_R: 83
   GAL_MU_0_R: None
   GAL_MU_E_I: None
   GAL_MU_0_I: None
@@ -75,15 +76,15 @@ configure_field: True
 
 tiling_type: greedy
 allocation_type: random
-proximity: 220 # This is  14.5*15.008
+proximity: 240 # Edited May 2023, increased from 220# This is  14.5*15.008
 Nsel: 19
 N_targets_per_Hector_field: 19
 Nsel_guides: 100
 Nsel_standards: 100
 
 TwoDF_FOV_radius: 1.0
-exclusion_zone: 220 # This is 14.5mm in arcseconds: 14.5 * 15.008
-Hector_FOV_outer_radius: 0.9318
+exclusion_zone: 240 # Edited May 2023, increased from 220# This is 14.5mm in arcseconds: 14.5 * 15.008
+Hector_FOV_outer_radius: 0.90 # Edited May 2023, decreased from 0.9318
 Hector_FOV_inner_radius: 0.0
 
 fraction_to_reobserve: 0.0

@@ -160,6 +160,10 @@ if __name__ == "__main__":
         f"\tRemoved {np.sum(sep_constraint)} galaxies from the WAVES North catalogue which are also in the SAMI catalogue"
     )
     print("\tDone")
+    
+    # Add in the approximate surface brightness values
+    final_WAVES_N_catalogue['approximate_SB_r'] = final_WAVES_N_catalogue['mag_rt'] + 2.5 * np.log10(np.pi * final_WAVES_N_catalogue['R50'] * final_WAVES_N_catalogue['R50'])
+    final_WAVES_S_catalogue['approximate_SB_r'] = final_WAVES_S_catalogue['mag_rt'] + 2.5 * np.log10(np.pi * final_WAVES_S_catalogue['R50'] * final_WAVES_S_catalogue['R50'])
 
     # Finally, move the things we've put around 350 degrees back to be negative in RA
     final_WAVES_S_catalogue.loc[final_WAVES_S_catalogue.RAmax > 300, "RAmax"] -= 360

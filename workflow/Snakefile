@@ -1,7 +1,7 @@
 """
 # Make Hector Input catalogues for each survey region.
 
-This Snakefile makes target selected catalogues for each survey region we have in Hector, then runs teh tiling code ready to be used for the Observing pipeline (which is separate). The Hector survey is split up into three "master" regions: WAVES North, WAVES South and the HectorClusters. When making the master target selected catalogue, we deal with the Clusters and WAVES regions separately (as explained below). We then separate the master catalogues into subregions and run the tiling on each one.
+This Snakefile makes target selected catalogues for each survey region we have in Hector, then runs the tiling code ready to be used for the Observing pipeline (which is separate). The Hector survey is split up into three "master" regions: WAVES North, WAVES South and the HectorClusters. When making the master target selected catalogue, we deal with the Clusters and WAVES regions separately (as explained below). We then separate the master catalogues into subregions and run the tiling on each one.
 
 The steps are:
 
@@ -124,6 +124,12 @@ rule all:
             "results/RegionCatalogues/WAVES_N/{region_name}/{region_name}_guide_stars.csv",
             region_name=WAVES_N_region_names,
         ),
+        all_tiling_complete=expand(
+            "results/Tiling/{master_region}/{region_name}/{region_name}_tiling_complete.flag",
+            zip,
+            master_region=master_regions_per_region_name,
+            region_name=region_names,
+        ),
 
 
 rule make_redshift_catalogue_from_2dF_obs:
@@ -166,10 +172,12 @@ rule prepare_cluster_catalogue:
         exisiting_redshift_catalogue="resources/Previous_Redshift_Cats/hemispec.v0.91recommended.parquet",
         SAMI_catalogue="resources/SAMI_catalogue/jvds_stelkin_cat_v012_mge_seecorr_kh20_v260421_private.fits",
         cluster_information="resources/ClusterInformation/HectorCluster_Information.txt",
+        stan_file="workflow/scripts/fit_red_sequence.stan",
     params:
         sep_constraint_arcsec=3.0,
     output:
         final_cluster_catalogue=rules.all.input.cluster_final_input_catalogue,
+        cluster_RS_plot="results/Plots/HectorClusters_red_sequence.pdf",
     script:
         "scripts/prepare_cluster_catalogue.py"
 
@@ -254,14 +262,112 @@ rule make_cluster_star_catalogues:
         "scripts/separate_cluster_star_catalogues.py"
 
 
-# rule tile_region:
-#     message:
-#         "Running the tiling"
-#     input:
-#         region_target_catalogue="results/RegionCatalogues/{master_region}/{region_name}/{region_name}_Hector_target_galaxies.csv",
-#         region_guide_star_catalogue="RegionCatalogues/{master_region}/{region_name}/{region_name}_guide_star_catalogue.csv",
-#         regionstandard_star_catalogue="RegionCatalogues/{master_region}/{region_name}/{region_name}standard_star_catalogue.csv",
-#     output:
-#         tiling_complete_flag="results/Tiling/{master_region}/{region_name}/{region_name}_tiling_complete.flag",
-#     script:
-#         "run_tiling.py"
+rule tile_region:
+    message:
+        "Running the tiling for {wildcards.master_region} {wildcards.region_name}"
+    input:
+        config_file="resources/TS_config_files/{master_region}_TS_config.yaml",
+        region_target_catalogue="results/RegionCatalogues/{master_region}/{region_name}/{region_name}_Hector_target_galaxies.csv",
+        region_guide_star_catalogue="results/RegionCatalogues/{master_region}/{region_name}/{region_name}_guide_stars.csv",
+        region_standard_star_catalogue="results/RegionCatalogues/{master_region}/{region_name}/{region_name}_standard_stars.csv",
+    params:
+        output_filename_stem="{region_name}",
+        output_folder="results/Tiling/{master_region}/{region_name}/",
+    output:
+        tiling_folder=directory("results/Tiling/{master_region}/{region_name}/Tiles"),
+        plots_folder=directory("results/Tiling/{master_region}/{region_name}/Plots"),
+        tiling_complete_flag="results/Tiling/{master_region}/{region_name}/{region_name}_tiling_complete.flag",
+    script:
+        "scripts/tile_region.py"
+
+
+# ******************************
+# Look at our catalogue if we include galaxies along the line of sight to the clusters
+rule prepare_cluster_catalogue_including_foreground:
+    message:
+        "Prepare the Cluster catalogue"
+    input:
+        input_cluster_catalogue="resources/InitialInputCatalogues/COMBINED_ApMatch_MSTARV2.5_MattOwers_310123.parquet",
+        observed_redshift_catalogue=rules.make_redshift_catalogue_from_2dF_obs.output.hrs_redshift_catalogue,
+        exisiting_redshift_catalogue="resources/Previous_Redshift_Cats/hemispec.v0.91recommended.parquet",
+        SAMI_catalogue="resources/SAMI_catalogue/jvds_stelkin_cat_v012_mge_seecorr_kh20_v260421_private.fits",
+        cluster_information="resources/ClusterInformation/HectorCluster_Information.txt",
+        stan_file="workflow/scripts/fit_red_sequence.stan",
+    params:
+        sep_constraint_arcsec=3.0,
+    output:
+        final_cluster_catalogue="results/FinalInputCatalogues/HectorClusters_final_input_including_foreground.parquet",
+        cluster_RS_plot="results/Plots/HectorClusters_red_sequence_including_foreground.pdf",
+    script:
+        "scripts/prepare_cluster_catalogue_including_foreground.py"
+
+
+rule run_target_selection_including_foreground:
+    message:
+        "Run the target selection on an input catalogue"
+    input:
+        target_selection_config_file="resources/TS_config_files/{master_region}_including_foreground_TS_config.yaml",
+        input_catalogue="results/FinalInputCatalogues/{master_region}_final_input_including_foreground.parquet",
+    output:
+        target_selection_plot="results/MasterCatalogues/{master_region}/{master_region}_target_selection_including_foreground.png",
+        master_target_selected_catalogue="results/MasterCatalogues/{master_region}/{master_region}_target_selected_including_foreground.parquet",
+    script:
+        "scripts/run_target_selection.py"
+
+
+rule separate_into_subregions_including_foreground:
+    message:
+        "Separate our master catalogues into subregions **including foreground galaxies**"
+    input:
+        master_catalogues=[
+            "results/MasterCatalogues/HectorClusters/HectorClusters_target_selected_including_foreground.parquet"
+        ],
+        region_information="resources/RegionInformation/all_regions.csv",
+    output:
+        all_region_catalogues=expand(
+            "results/RegionCatalogues/HectorClusters_including_fg/{region_name}/{region_name}_Hector_target_galaxies_including_fg.csv",
+            region_name=cluster_region_names,
+        ),
+    script:
+        "scripts/separate_catalogues_into_regions.py"
+
+
+rule copy_cluster_star_cats_to_correct_name:
+    message:
+        "Copying the cluster star catalogues to the correct places"
+    input:
+        region_standard_star_catalogue="results/RegionCatalogues/HectorClusters/{region_name}/{region_name}_standard_stars.csv",
+        region_guide_star_catalogue="results/RegionCatalogues/HectorClusters/{region_name}/{region_name}_guide_stars.csv",
+    output:
+        region_guide_star_catalogue="results/RegionCatalogues/HectorClusters_including_fg/{region_name}/{region_name}_guide_stars.csv",
+        region_standard_star_catalogue="results/RegionCatalogues/HectorClusters_including_fg/{region_name}/{region_name}_standard_stars.csv",
+    run:
+        shell(
+            "cp {input.region_standard_star_catalogue} {output.region_standard_star_catalogue}"
+        )
+        shell(
+            "cp {input.region_guide_star_catalogue} {output.region_guide_star_catalogue}"
+        )
+
+
+rule tile_region_including_foreground:
+    message:
+        "Running the tiling for Hector Clusters: {wildcards.region_name} **including foreground repeats**"
+    input:
+        config_file="resources/TS_config_files/HectorClusters_including_foreground_TS_config.yaml",
+        region_target_catalogue="results/RegionCatalogues/HectorClusters_including_fg/{region_name}/{region_name}_Hector_target_galaxies_including_fg.csv",
+        region_guide_star_catalogue="results/RegionCatalogues/HectorClusters_including_fg/{region_name}/{region_name}_guide_stars.csv",
+        region_standard_star_catalogue="results/RegionCatalogues/HectorClusters_including_fg/{region_name}/{region_name}_standard_stars.csv",
+    params:
+        output_filename_stem="{region_name}",
+        output_folder="results/Tiling/HectorClusters_including_fg/{region_name}/",
+    output:
+        tiling_folder=directory(
+            "results/Tiling/HectorClusters_including_fg/{region_name}/Tiles"
+        ),
+        plots_folder=directory(
+            "results/Tiling/HectorClusters_including_fg/{region_name}/Plots"
+        ),
+        tiling_complete_flag="results/Tiling/HectorClusters_including_fg/{region_name}/{region_name}_tiling_complete.flag",
+    script:
+        "scripts/tile_region.py"

@@ -1,3 +1,0 @@
-AttributeErrorin line 95 of /Users/samvaughan/Science/Hector/Targets/MakeInputCatalogues/workflow/Snakefile:
-'InputFiles' object has no attribute 'cut_down_WAVES_catalogue_fnames'
-  File "/Users/samvaughan/Science/Hector/Targets/MakeInputCatalogues/workflow/Snakefile", line 95, in <module>

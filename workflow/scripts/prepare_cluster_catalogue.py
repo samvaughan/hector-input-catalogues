@@ -6,6 +6,7 @@ This script does the following things:
 * Matches to the redshifts observed with the Hector Redshift Survey
 * Adds the stellar mass column, assuming an astropy FlatLambdaCDM cosmology
 * Drops galaxies with bad values of stellar mass and/or redshift
+* Fits the red sequence to get red sequence membership probabilities/flags
 """
 
 import pandas as pd
@@ -14,20 +15,7 @@ from astropy.cosmology import FlatLambdaCDM
 import utils
 import pandas_tools as P
 import numpy as np
-
-
-def z_over_sigma_z(x):
-    """Take a series of redshifts and find z / sigma(z) so we can remove massive outliers
-
-    Args:
-        x (DataFrame): A dataframe with columns 'z' and 'cluster_redshift'
-
-    Returns:
-        Series: a series with values z / sigma(z)
-    """
-    residual = x.z - x.cluster_redshift
-    sigma = np.std(residual)
-    return residual / sigma
+from cmdstanpy import CmdStanModel
 
 
 if __name__ == "__main__":
@@ -44,7 +32,7 @@ if __name__ == "__main__":
     )
 
     # Spoke to Matt on 23/03/23: He will deal with the redshift matching, and I'll stop doing it here.
-    
+
     # # Get the redshift catalogues
     # print("Combining the redshift catalogues...")
     # existing_redshifts = pd.read_parquet(
@@ -84,6 +72,7 @@ if __name__ == "__main__":
         (cluster_catalogue["z"] > 0.0)
         & (cluster_catalogue["logMstarProxy_LS"] > 0.0)
         & ((cluster_catalogue["mem_flag"] == 1))
+        & ((cluster_catalogue["r_on_rtwo"] <= 2.5))
     )
     cluster_catalogue = cluster_catalogue.loc[good_data_mask]
     print("\tDone")
@@ -105,21 +94,70 @@ if __name__ == "__main__":
     cluster_catalogue = cluster_catalogue.loc[~sep_constraint]
     print(f"\tRemoved {np.sum(sep_constraint)} SAMI galaxies")
     print("\tDone")
-    
-    print("Removing a handful of redshift outliers...")
-    # Add the cluster redshifts for each object
-    cluster_catalogue['cluster_redshift'] = cluster_catalogue.apply(lambda x: cluster_info.loc[x.NearClus, 'z'], axis=1)
-    
-    # Remove 5 sigma redshift outliers (there's not many)
 
-    redshift_over_sigma_z = cluster_catalogue.groupby('NearClus').apply(z_over_sigma_z).reset_index(level=0, drop=True)
-    redshift_over_sigma_z.name = 'z_residual_over_sigma_z'
-    cluster_catalogue = cluster_catalogue.join(redshift_over_sigma_z)
-    # Now remove everything which has z_over_sigma_z > 5
-    z_outlier_mask = cluster_catalogue.loc[:, 'z_residual_over_sigma_z'] < 5
-    cluster_catalogue = cluster_catalogue.loc[z_outlier_mask]
-    print(f"\tRemoved {np.sum(~z_outlier_mask)} cluster members which are outliers in redshift")
-    print("\tDone")
+    # Add the cluster redshifts for each object
+    cluster_catalogue["cluster_redshift"] = cluster_catalogue.apply(
+        lambda x: cluster_info.loc[x.NearClus, "z"], axis=1
+    )
+
+    # Fit the red sequence
+    print("Fitting the red sequence...")
+    # first get absolute magnitudes
+    cosmo = FlatLambdaCDM(H0=70, Om0=0.3)
+    cluster_catalogue["Absolute_mag_R"] = utils.k_corrected_r_band_abs_mag(
+        cluster_catalogue, cosmo
+    )
+
+    # Centre these values around the mean and make the y values
+    mean_abs_mag = np.mean(cluster_catalogue.Absolute_mag_R)
+    x_all = cluster_catalogue.Absolute_mag_R - mean_abs_mag
+    y_all = cluster_catalogue.mag_g - cluster_catalogue.mag_r
+
+    # Get rid of some galaxies which are very red
+    x = x_all.loc[y_all < 1.05]
+    y = y_all.loc[y_all < 1.05]
+    N = len(x)
+    data = dict(N=N, x=x, y=y)
+
+    # Fit the stan model
+    sm = CmdStanModel(stan_file=smk.input.stan_file)
+    fit = sm.sample(data=data)
+
+    # Get the results as a pandas dataframe
+    samples = fit.draws_pd()
+
+    fig, ax = utils.plot_red_sequence(samples, data, mean_abs_mag)
+    fig.savefig(smk.output.cluster_RS_plot, bbox_inches="tight")
+
+    # Get the membership probabilities and save the table
+    Red_Sequence_member_probability = utils.get_membership_prob(samples, data)
+    Red_Sequence_member_probability.index = data["x"].index
+
+    # Using the fact that the index is now correct
+    cluster_catalogue["RS_member_probability"] = Red_Sequence_member_probability
+
+    # Tweak the fact that some very red things have a smaller probability of being a red sequence member than they should
+    cluster_catalogue.loc[
+        cluster_catalogue.mag_g - cluster_catalogue.mag_r > 1.0, "RS_member_probability"
+    ] = 1
+
+    cluster_catalogue["RS_member_from_mm"] = (
+        cluster_catalogue["RS_member_probability"] > 0.4
+    )
+
+    # Add the column where we take everything above the red sequence minus 2 sigma of scatter to be a red sequence member
+    cluster_catalogue["RS_member_2sig_scatter"] = data["y"] > (
+        data["x"] * samples["slopes[2]"].mean()
+        + samples["intercepts[2]"].mean()
+        - 2 * samples["scatter[2]"].mean()
+    )
+    cluster_catalogue["RS_member_2sig_scatter"] = cluster_catalogue[
+        "RS_member_2sig_scatter"
+    ].astype(bool)
+    
+    cluster_catalogue['approximate_SB_r'] = cluster_catalogue['mag_r'] + 2.5 * (np.log10(np.pi) + 2 * np.log10(cluster_catalogue['Re']))
+
+    print("\tDone!")
 
     print("Saving the final catalogue...")
     cluster_catalogue.to_parquet(smk.output.final_cluster_catalogue)
