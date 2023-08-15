@@ -186,6 +186,7 @@ if __name__ == "__main__":
 
     # This is the SQL query we use to select stars from APASS and their match to GAMA.
     # If WAVES North, we use PANSTARRS. Otherwise we use skymapper
+    # For the clusters, we use Skymapper for all fields except A0085, A0119 and A2399
     if smk.wildcards["master_region"] == "WAVES_N":
         sql_query = panstarrs_SQL_query(
             min_RA=min_RA,
@@ -201,6 +202,9 @@ if __name__ == "__main__":
         if smk.wildcards["region_name"] == "G23":
             min_RA += 360
             max_RA += 360
+            assert (
+                (min_RA > 0) & (min_RA < 360) & (max_RA > 0) & (max_RA < 360)
+            ), "The RA constraints must be between 0 and 360"
 
         sql_query = skymapper_SQL_query(
             min_RA=min_RA,

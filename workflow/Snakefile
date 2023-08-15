@@ -240,26 +240,26 @@ rule make_WAVES_star_catalogues:
         "scripts/select_stars.py"
 
 
-rule make_cluster_star_catalogues:
-    message:
-        "Separating the master star catalogues we have for the clusters into individual regions"
-    input:
-        master_standard_star_cat="resources/ClusterStarCatalogues/HECTOR_CRS_fstars_RUN8_DR9.txt",
-        master_guide_star_cat="resources/ClusterStarCatalogues/HECTOR_CRS_guides_RUN8_DR9.txt",
-        region_information="resources/RegionInformation/all_regions.csv",
-    output:
-        region_standard_star_catalogues=expand(
-            "results/RegionCatalogues/HectorClusters/{region_name}/{region_name}_standard_stars.csv",
-            region_name=cluster_region_names,
-        ),
-        region_guide_star_catalogues=expand(
-            "results/RegionCatalogues/HectorClusters/{region_name}/{region_name}_guide_stars.csv",
-            region_name=cluster_region_names,
-        ),
-    params:
-        cluster_region_names=cluster_region_names,
-    script:
-        "scripts/separate_cluster_star_catalogues.py"
+# rule make_cluster_star_catalogues:
+#     message:
+#         "Separating the master star catalogues we have for the clusters into individual regions"
+#     input:
+#         master_standard_star_cat="resources/ClusterStarCatalogues/HECTOR_CRS_fstars_RUN8_DR9.txt",
+#         master_guide_star_cat="resources/ClusterStarCatalogues/HECTOR_CRS_guides_RUN8_DR9.txt",
+#         region_information="resources/RegionInformation/all_regions.csv",
+#     output:
+#         region_standard_star_catalogues=expand(
+#             "results/RegionCatalogues/HectorClusters/{region_name}/{region_name}_standard_stars.csv",
+#             region_name=cluster_region_names,
+#         ),
+#         region_guide_star_catalogues=expand(
+#             "results/RegionCatalogues/HectorClusters/{region_name}/{region_name}_guide_stars.csv",
+#             region_name=cluster_region_names,
+#         ),
+#     params:
+#         cluster_region_names=cluster_region_names,
+#     script:
+#         "scripts/separate_cluster_star_catalogues.py"
 
 
 rule tile_region:
