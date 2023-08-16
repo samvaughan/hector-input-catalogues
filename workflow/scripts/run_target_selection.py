@@ -12,6 +12,7 @@ import shutil
 from pathlib import Path
 import pandas as pd
 import utils
+import numpy as np
 
 # import scipy.stats as stats
 
@@ -21,7 +22,11 @@ config_filename = smk.input.target_selection_config_file
 
 HP = pipeline.HectorPipe(config_filename=config_filename)
 
-fig, axs = HP.run_target_selection(save=False, plot=True)
+# Make sure to have a random generator with known seed for repeatable results
+random_generator = np.random.default_rng(12345)
+fig, axs = HP.run_target_selection(
+    random_generator=random_generator, save=False, plot=True
+)
 fig.savefig(smk.output.target_selection_plot, bbox_inches="tight")
 plt.close("all")
 
@@ -44,6 +49,9 @@ if smk.wildcards["master_region"] == "HectorClusters":
     HP.target_selection.selection_function_sparsely_sampled[
         "z"
     ] = master_input_catalogue["z"]
+
+
+# If we're in the clusters, make sure the BCGs have been selected
 
 # Just to save typing this out loads of times
 target_df = HP.target_selection.selection_function_sparsely_sampled.copy()
