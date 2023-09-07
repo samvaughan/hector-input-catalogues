@@ -33,6 +33,10 @@ master_standard_stars.loc[:, ["pmRA", "pmDEC"]] = 0.0
 # Add the guide star priority- it's always 8
 master_guide_stars["priority"] = 8
 
+# Add letters to the start of each
+master_guide_stars["ID"] = master_guide_stars.apply(lambda x: f"G{x.ID}", axis=1)
+master_standard_stars["ID"] = master_standard_stars.apply(lambda x: f"S{x.ID}", axis=1)
+
 columns_in_order = ["ID", "RA", "DEC", "r_mag", "type", "pmRA", "pmDEC", "priority"]
 
 for (region, row), standard_filename, guide_filename in zip(

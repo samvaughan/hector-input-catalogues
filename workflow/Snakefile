@@ -95,7 +95,7 @@ rule all:
         WAVES_S_final_input_catalogue="results/FinalInputCatalogues/WAVES_S_final_input.parquet",
         cluster_final_input_catalogue="results/FinalInputCatalogues/HectorClusters_final_input.parquet",
         target_selection_catalogue=expand(
-            "results/MasterCatalogues/{master_region}/{master_region}_master_target_selected.parquet",
+            "results/MasterCatalogues/{master_region}/{master_region}_master_target_selected_final.parquet",
             master_region=master_regions,
         ),
         region_catalogues=expand(
@@ -125,13 +125,19 @@ rule all:
             region_name=WAVES_N_region_names,
         ),
         cluster_final_input_catalogue_including_foreground="results/FinalInputCatalogues/HectorClusters_final_input_including_foreground.parquet",
-        cluster_target_selected_including_foreground="results/MasterCatalogues/HectorClusters/HectorClusters_target_selected_including_foreground.parquet",
+        cluster_target_selected_including_foreground="results/MasterCatalogues/HectorClusters/HectorClusters_target_selected_including_foreground_final.parquet",
         cluster_region_cats_including_foreground=expand(
             "results/RegionCatalogues/HectorClusters_including_fg/{region_name}/{region_name}_Hector_target_galaxies_including_fg.csv",
             region_name=cluster_region_names,
         ),
-        region_guide_star_catalogue=expand("results/RegionCatalogues/HectorClusters_including_fg/{region_name}/{region_name}_guide_stars.csv", region_name=cluster_region_names),
-        region_standard_star_catalogue=expand("results/RegionCatalogues/HectorClusters_including_fg/{region_name}/{region_name}_standard_stars.csv", region_name=cluster_region_names),
+        region_guide_star_catalogue=expand(
+            "results/RegionCatalogues/HectorClusters_including_fg/{region_name}/{region_name}_guide_stars.csv",
+            region_name=cluster_region_names,
+        ),
+        region_standard_star_catalogue=expand(
+            "results/RegionCatalogues/HectorClusters_including_fg/{region_name}/{region_name}_standard_stars.csv",
+            region_name=cluster_region_names,
+        ),
         #database_created = "results/Database/tables_updated.flag"
         # all_tiling_complete=expand(
         #     "results/Tiling/{master_region}/{region_name}/{region_name}_tiling_complete.flag",
@@ -163,6 +169,7 @@ rule prepare_WAVES_catalogue:
         observed_redshift_catalogue=rules.make_redshift_catalogue_from_2dF_obs.output.hrs_redshift_catalogue,
         exisiting_redshift_catalogue="resources/Previous_Redshift_Cats/hemispec.v0.91recommended.parquet",
         SAMI_catalogue="resources/SAMI_catalogue/jvds_stelkin_cat_v012_mge_seecorr_kh20_v260421_private.fits",
+        region_information="resources/RegionInformation/all_regions.csv",
     params:
         sep_constraint_arcsec=3.0,
     output:
@@ -182,6 +189,8 @@ rule prepare_cluster_catalogue:
         SAMI_catalogue="resources/SAMI_catalogue/jvds_stelkin_cat_v012_mge_seecorr_kh20_v260421_private.fits",
         cluster_information="resources/ClusterInformation/HectorCluster_Information.txt",
         stan_file="workflow/scripts/fit_red_sequence.stan",
+        region_information="resources/RegionInformation/all_regions.csv",
+        badclass_votes="results/BadClass_probabilities/HectorCluster_including_foreground_badclass_probs.csv",
     params:
         sep_constraint_arcsec=3.0,
     output:
@@ -191,17 +200,41 @@ rule prepare_cluster_catalogue:
         "scripts/prepare_cluster_catalogue.py"
 
 
-rule run_target_selection_and_post_process:
+rule run_target_selection:
     message:
-        "Run the target selection on an input catalogue and remove galaxies with poor centres, close to bright stars, etc"
+        "Run the target selection on an input catalogue"
     input:
         target_selection_config_file="resources/TS_config_files/{master_region}_TS_config.yaml",
         input_catalogue="results/FinalInputCatalogues/{master_region}_final_input.parquet",
     output:
         target_selection_plot="results/MasterCatalogues/{master_region}/{master_region}_target_selection.png",
-        master_target_selected_catalogue="results/MasterCatalogues/{master_region}/{master_region}_master_target_selected.parquet",
+        master_target_selected_catalogue="results/MasterCatalogues/{master_region}/{master_region}_master_target_selected_initial.parquet",
     script:
         "scripts/run_target_selection.py"
+
+
+rule add_previously_observed_galaxies_back_to_master_catalogue:
+    message:
+        "Adding galaxies which we've previously observed back into the master catalogue"
+    input:
+        master_catalogue="results/MasterCatalogues/{master_region}/{master_region}_master_target_selected_initial.parquet",
+        galaxies_observed_up_to_August_2023="resources/Galaxies_Observed_up_to_August_2023/galaxies_observed_up_to_2023.csv",
+    output:
+        master_catalogue_with_all_observations="results/MasterCatalogues/{master_region}/{master_region}_master_target_selected_final.parquet",
+    script:
+        "scripts/add_observed_galaxies_to_master_catalogues.py"
+
+
+# rule postprocess_target_selected_catalogue:
+#     message:
+#         "Take our master selected catalogue and get rid of galaxies in various `bad classes'"
+#     input:
+#         master_catalogue="results/MasterCatalogues/{master_region}/{master_region}_master_target_selected_no_postprocessing.parquet",
+#         region_information="resources/RegionInformation/all_regions.csv",
+#     output:
+#         master_target_selected_catalogue="results/MasterCatalogues/{master_region}/{master_region}_master_target_selected.parquet",
+#     script:
+#         "workflow/scripts/postprocess_target_selected_catalogue.py"
 
 
 rule separate_into_subregions:
@@ -240,12 +273,24 @@ rule make_star_catalogues:
         date_for_observations=date_for_observations,
         pad=RA_DEC_padding_for_star_selection,
     wildcard_constraints:
-        master_region="WAVES_N|WAVES_S|HectorClusters"
+        master_region="WAVES_N|WAVES_S|HectorClusters",
     output:
         region_standard_star_catalogue="results/RegionCatalogues/{master_region}/{region_name}/{region_name}_standard_stars.csv",
         region_guide_star_catalogue="results/RegionCatalogues/{master_region}/{region_name}/{region_name}_guide_stars.csv",
     script:
         "scripts/select_stars.py"
+
+
+rule make_badclass_probabilities:
+    message:
+        "Making the bad-class probabilities from the Hector TS app"
+    input:
+        json_votes="resources/JSON_badclass_votes/Cluster_Targets_290823.json",
+    output:
+        badclass_probabilities="results/BadClass_probabilities/HectorCluster_including_foreground_badclass_probs.csv",
+    script:
+        "scripts/prepare_badclass_votes_table.py"
+
 
 # rule make_cluster_star_catalogues:
 #     message:
@@ -300,6 +345,8 @@ rule prepare_cluster_catalogue_including_foreground:
         SAMI_catalogue="resources/SAMI_catalogue/jvds_stelkin_cat_v012_mge_seecorr_kh20_v260421_private.fits",
         cluster_information="resources/ClusterInformation/HectorCluster_Information.txt",
         stan_file="workflow/scripts/fit_red_sequence.stan",
+        region_information="resources/RegionInformation/all_regions.csv",
+        badclass_votes="results/BadClass_probabilities/HectorCluster_including_foreground_badclass_probs.csv",
     params:
         sep_constraint_arcsec=3.0,
     output:
@@ -317,9 +364,21 @@ rule run_target_selection_including_foreground:
         input_catalogue="results/FinalInputCatalogues/{master_region}_final_input_including_foreground.parquet",
     output:
         target_selection_plot="results/MasterCatalogues/{master_region}/{master_region}_target_selection_including_foreground.png",
-        master_target_selected_catalogue="results/MasterCatalogues/{master_region}/{master_region}_target_selected_including_foreground.parquet",
+        master_target_selected_catalogue="results/MasterCatalogues/{master_region}/{master_region}_target_selected_including_foreground_initial.parquet",
     script:
         "scripts/run_target_selection.py"
+
+
+rule add_previously_observed_galaxies_back_to_master_catalogue_including_foreground:
+    message:
+        "Adding galaxies which we've previously observed back into the master catalogue"
+    input:
+        master_catalogue="results/MasterCatalogues/{master_region}/{master_region}_target_selected_including_foreground_initial.parquet",
+        galaxies_observed_up_to_August_2023="resources/Galaxies_Observed_up_to_August_2023/galaxies_observed_up_to_2023.csv",
+    output:
+        master_catalogue_with_all_observations="results/MasterCatalogues/{master_region}/{master_region}_target_selected_including_foreground_final.parquet",
+    script:
+        "scripts/add_observed_galaxies_to_master_catalogues.py"
 
 
 rule separate_into_subregions_including_foreground:
@@ -327,7 +386,7 @@ rule separate_into_subregions_including_foreground:
         "Separate our master catalogues into subregions **including foreground galaxies**"
     input:
         master_catalogues=[
-            "results/MasterCatalogues/HectorClusters/HectorClusters_target_selected_including_foreground.parquet"
+            "results/MasterCatalogues/HectorClusters/HectorClusters_target_selected_including_foreground_final.parquet"
         ],
         region_information="resources/RegionInformation/all_regions.csv",
     output:

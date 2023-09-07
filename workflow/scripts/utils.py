@@ -296,3 +296,111 @@ def load_FITS_table_in_pandas(filename):
     hdu = fits.open(filename)
     t = Table(hdu[1].data)
     return t.to_pandas()
+
+
+def skymapper_SQL_query(
+    min_RA,
+    max_RA,
+    min_DEC,
+    max_DEC,
+    faintest_magnitude,
+    brightest_magnitude,
+    N=500000,
+    require_all_bands=True,
+):
+    skymapper_query = f"""SELECT TOP {N}
+        
+        skymapper.*,
+        main_gaia.ref_epoch,
+        main_gaia.ra,
+        main_gaia.dec,
+        main_gaia.pmra,
+        main_gaia.pmdec,
+        main_gaia.phot_g_mean_mag,
+        main_gaia.phot_bp_mean_mag,
+        main_gaia.phot_rp_mean_mag
+        
+        
+        FROM external.skymapperdr2_master AS skymapper
+        
+        JOIN gaiadr3.gaia_source AS main_gaia ON main_gaia.source_id = skymapper.gaia_dr2_id1
+        
+        WHERE (skymapper.raj2000 > {min_RA})
+        AND (skymapper.raj2000 < {max_RA})
+        AND (skymapper.dej2000 < {max_DEC})
+        AND (skymapper.dej2000 > {min_DEC})
+        AND (skymapper.r_psf > {brightest_magnitude})
+        AND (skymapper.r_psf < {faintest_magnitude})
+        """
+    if require_all_bands:
+        skymapper_query += """AND (main_gaia.pmra  > -100)
+        AND (main_gaia.pmra < 100)
+        AND (main_gaia.pmdec > -100)
+        AND (main_gaia.pmdec < 100)
+        AND (skymapper.flags = 0)
+        AND (skymapper.nimaflags = 0)
+        AND (skymapper.u_ngood > 0)
+        AND (skymapper.g_ngood > 0)
+        AND (skymapper.r_ngood > 0)
+        AND (skymapper.i_ngood > 0)
+        AND (skymapper.z_ngood > 0)
+
+        ORDER BY r_psf ASC
+        """
+
+    return skymapper_query
+
+
+def panstarrs_SQL_query(
+    min_RA,
+    max_RA,
+    min_DEC,
+    max_DEC,
+    faintest_magnitude,
+    brightest_magnitude,
+    N=500000,
+    require_all_bands=True,
+):
+    panstarrs_query = f"""SELECT TOP {N}
+        
+        panstarrs.*,
+        matchy.source_id,
+        matchy.original_ext_source_id,
+        main_gaia.ref_epoch,
+        main_gaia.ra,
+        main_gaia.dec,
+        main_gaia.pmra,
+        main_gaia.pmdec,
+        main_gaia.phot_g_mean_mag,
+        main_gaia.phot_bp_mean_mag,
+        main_gaia.phot_rp_mean_mag
+        
+        FROM gaiadr2.panstarrs1_original_valid AS panstarrs
+
+        JOIN gaiadr2.panstarrs1_best_neighbour as matchy
+        ON matchy.original_ext_source_id = panstarrs.obj_id
+    
+        JOIN gaiadr2.gaia_source AS main_gaia ON main_gaia.source_id = matchy.source_id
+        
+        WHERE (panstarrs.ra > {min_RA})
+        AND (panstarrs.ra < {max_RA})
+        AND (panstarrs.dec > {min_DEC})
+        AND (panstarrs.dec < {max_DEC})
+        AND (panstarrs.r_mean_psf_mag > {brightest_magnitude})
+        AND (panstarrs.r_mean_psf_mag < {faintest_magnitude})
+        """
+    if require_all_bands:
+        panstarrs_query += """AND (main_gaia.pmra  > -100)
+        AND (main_gaia.pmra < 100)
+        AND (main_gaia.pmdec > -100)
+        AND (main_gaia.pmdec < 100)
+        AND (panstarrs.g_mean_psf_mag IS NOT NULL)
+        AND (panstarrs.r_mean_psf_mag IS NOT NULL)
+        AND (panstarrs.i_mean_psf_mag IS NOT NULL)
+        AND (panstarrs.z_mean_psf_mag IS NOT NULL)
+        AND (panstarrs.y_mean_psf_mag IS NOT NULL)
+
+        ORDER BY r_mean_psf_mag ASC
+        """
+
+    return panstarrs_query

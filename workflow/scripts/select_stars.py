@@ -3,7 +3,7 @@ Select standard and guide stars for each of our survey regions in the WAVES regi
 
 For WAVES North we use Panstarrs, for WAVES South we use SkyMapper.
 """
-
+import utils
 import numpy as np
 from astroquery.gaia import Gaia
 import pandas as pd
@@ -111,96 +111,6 @@ def standard_star_priority_panstarrs(df):
     return X
 
 
-def panstarrs_SQL_query(
-    min_RA, max_RA, min_DEC, max_DEC, faintest_magnitude, brightest_magnitude, N=500000
-):
-    panstarrs_query = f"""SELECT TOP {N}
-        
-        panstarrs.*,
-        matchy.source_id,
-        matchy.original_ext_source_id,
-        main_gaia.ref_epoch,
-        main_gaia.ra,
-        main_gaia.dec,
-        main_gaia.pmra,
-        main_gaia.pmdec,
-        main_gaia.phot_g_mean_mag,
-        main_gaia.phot_bp_mean_mag,
-        main_gaia.phot_rp_mean_mag
-        
-        FROM gaiadr2.panstarrs1_original_valid AS panstarrs
-
-        JOIN gaiadr2.panstarrs1_best_neighbour as matchy
-        ON matchy.original_ext_source_id = panstarrs.obj_id
-    
-        JOIN gaiadr2.gaia_source AS main_gaia ON main_gaia.source_id = matchy.source_id
-        
-        WHERE (panstarrs.ra > {min_RA})
-        AND (panstarrs.ra < {max_RA})
-        AND (panstarrs.dec > {min_DEC})
-        AND (panstarrs.dec < {max_DEC})
-        AND (main_gaia.pmra  > -100)
-        AND (main_gaia.pmra < 100)
-        AND (main_gaia.pmdec > -100)
-        AND (main_gaia.pmdec < 100)
-        AND (panstarrs.r_mean_psf_mag > {brightest_magnitude})
-        AND (panstarrs.r_mean_psf_mag < {faintest_magnitude})
-        AND (panstarrs.g_mean_psf_mag IS NOT NULL)
-        AND (panstarrs.r_mean_psf_mag IS NOT NULL)
-        AND (panstarrs.i_mean_psf_mag IS NOT NULL)
-        AND (panstarrs.z_mean_psf_mag IS NOT NULL)
-        AND (panstarrs.y_mean_psf_mag IS NOT NULL)
-
-        ORDER BY r_mean_psf_mag ASC
-        """
-
-    return panstarrs_query
-
-
-def skymapper_SQL_query(
-    min_RA, max_RA, min_DEC, max_DEC, faintest_magnitude, brightest_magnitude, N=500000
-):
-    skymapper_query = f"""SELECT TOP {N}
-        
-        skymapper.*,
-        main_gaia.ref_epoch,
-        main_gaia.ra,
-        main_gaia.dec,
-        main_gaia.pmra,
-        main_gaia.pmdec,
-        main_gaia.phot_g_mean_mag,
-        main_gaia.phot_bp_mean_mag,
-        main_gaia.phot_rp_mean_mag
-        
-        
-        FROM external.skymapperdr2_master AS skymapper
-        
-        JOIN gaiadr3.gaia_source AS main_gaia ON main_gaia.source_id = skymapper.gaia_dr2_id1
-        
-        WHERE (skymapper.raj2000 > {min_RA})
-        AND (skymapper.raj2000 < {max_RA})
-        AND (skymapper.dej2000 < {max_DEC})
-        AND (skymapper.dej2000 > {min_DEC})
-        AND (main_gaia.pmra  > -100)
-        AND (main_gaia.pmra < 100)
-        AND (main_gaia.pmdec > -100)
-        AND (main_gaia.pmdec < 100)
-        AND (skymapper.r_psf > {brightest_magnitude})
-        AND (skymapper.r_psf < {faintest_magnitude})
-        AND (skymapper.flags = 0)
-        AND (skymapper.nimaflags = 0)
-        AND (skymapper.u_ngood > 0)
-        AND (skymapper.g_ngood > 0)
-        AND (skymapper.r_ngood > 0)
-        AND (skymapper.i_ngood > 0)
-        AND (skymapper.z_ngood > 0)
-
-        ORDER BY r_psf ASC
-        """
-
-    return skymapper_query
-
-
 if __name__ == "__main__":
     smk = snakemake  # noqa
     print(f"Region is {smk.wildcards['master_region']}: {smk.wildcards['region_name']}")
@@ -230,7 +140,7 @@ if __name__ == "__main__":
     # If WAVES North, we use PANSTARRS. Otherwise we use skymapper
     # For the clusters, we use Skymapper for all fields except A0085, A0119 and A2399
     if query_source == "PANSTARRS":
-        sql_query = panstarrs_SQL_query(
+        sql_query = utils.panstarrs_SQL_query(
             min_RA=min_RA,
             max_RA=max_RA,
             min_DEC=min_DEC,
@@ -248,7 +158,7 @@ if __name__ == "__main__":
                 (min_RA > 0) & (min_RA < 360) & (max_RA > 0) & (max_RA < 360)
             ), "The RA constraints must be between 0 and 360"
 
-        sql_query = skymapper_SQL_query(
+        sql_query = utils.skymapper_SQL_query(
             min_RA=min_RA,
             max_RA=max_RA,
             min_DEC=min_DEC,
@@ -346,7 +256,7 @@ if __name__ == "__main__":
 
     print("Selecting stars and assigning priorities...")
     # Select guide stars
-    guide_star_mask = (df.g_psf < 14.5) & (df.g_psf > 14.0)
+    guide_star_mask = (df.g_psf < 15) & (df.g_psf > 14.0)
     guide_stars = df.loc[guide_star_mask].copy()
     hexabundle_stars = df.loc[(~guide_star_mask) & (df.r_psf > 16)].copy()
 

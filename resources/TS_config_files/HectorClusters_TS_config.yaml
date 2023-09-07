@@ -12,7 +12,7 @@ MstarMin: 8
 MstarMax: 12
 SparseFunction:
   name: "RedSequence"
-  fraction_red_to_keep: 0.5
+  fraction_red_to_keep: 0.7
 minRe: 1.5
 
 # Name of the input source catalogue - mainly for plotting
@@ -55,6 +55,7 @@ Columns:
   r_on_rtwo: 5
   ClusterName: 2
   ClusterMember: 6
+  bad_class: 81
 
 total_area: 0
 

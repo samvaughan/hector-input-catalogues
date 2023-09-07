@@ -25,5 +25,6 @@ for (region, row), filename in zip(region_information.iterrows(), output_filenam
         & (master_df.DEC > row.min_DEC)
         & (master_df.DEC < row.max_DEC)
     )
-    master_df.loc[region_mask].to_csv(filename, index=False)
+    bad_class_mask = master_df["bad_class"] == 0
+    master_df.loc[region_mask & bad_class_mask].to_csv(filename, index=False)
     print(f"\tSelected {region_mask.sum()} galaxies for {region}")

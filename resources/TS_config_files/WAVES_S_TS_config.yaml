@@ -38,7 +38,7 @@ Columns:
   GAL_MU_0_U: None
   GAL_MU_E_G: None
   GAL_MU_0_G: None
-  GAL_MU_E_R: 83
+  GAL_MU_E_R: 84
   GAL_MU_0_R: None
   GAL_MU_E_I: None
   GAL_MU_0_I: None
@@ -49,6 +49,7 @@ Columns:
   MassHIpred: None
   WALLABYflag: None
   Dingoflag: None
+  bad_class: 83
 
 total_area: 850
 
