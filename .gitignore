@@ -2,3 +2,4 @@
 *.parquet
 results/*
 .snakemake
+*.DS_Store
