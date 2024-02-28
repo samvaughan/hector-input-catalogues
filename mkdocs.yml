@@ -7,6 +7,8 @@ repo_name: Hector Input Catalogues
 
 nav:
   - Home: 'index.md'
+  - Running the Code: 'walkthrough.md'
+  - Adding a New Region: 'adding_a_new_region.md'
 
 theme: 
   name: material
@@ -14,11 +16,15 @@ theme:
     primary: black
   logo: img/favicon.png
   favicon: img/favicon.png
+  features:
+    - content.footnote.tooltips
 
   
 markdown_extensions:
   - pymdownx.arithmatex:
       generic: true
+  - attr_list
+  - footnotes
 
 extra_javascript:
   - javascripts/mathjax.js
