@@ -284,6 +284,92 @@
   
 
     
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Other Hector Documentation
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            Other Hector Documentation
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://samvaughan.info/hector-observing/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Observing Pipeline
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="https://samvaughan.info/hector-tiling/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Tiling
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
   </ul>
 </nav>
                   </div>
@@ -321,6 +407,18 @@
 
 
 <h1 id="adding-a-new-region">Adding a new Region</h1>
+<p>As the Hector survey progresses, it will become necessary to create catalogues of targets, standard stars and guide stars for a new region of the sky. This page explains how to do that.</p>
+<p>You'll need to make the following changes:</p>
+<ol>
+<li>Make a backup of all of the current catalogues. You really don't want to overwrite anything!</li>
+<li>Edit the file <code>resources/RegionInformation/all_regions.csv</code> to add the properties of the new region. You'll need to add a name, the minimum and maximum RA and Declination of the region, the area it covers, the "master region" that it comes from (e.g. <code>WAVES_S</code>, <code>WAVES_N</code> or <code>HectorClusters</code>) and the source of the photometry (where we get the guide and standard star catalogues from). Note that the pipeline at the moment can only download catalogues from the SkyMapper or PANSTARRS surveys at the moment.</li>
+<li>Re-run the pipeline from the main folder: <code>snakemake --cores 1</code>. You should see the new region catalogues being made.</li>
+<li>Check that the master catalogue you've just updated (e.g. the master WAVES N catalogue if you've added a WAVES N region) is the same as it was before, just with extra galaxies added which correspond to the new region of sky. </li>
+</ol>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p>I've not tested adding a new region. There is a real chance of overwriting the master catalogues, which <em>might</em> be unrecoverable due to the random sampling element. I don't <em>think</em> that this is the case (I've added random seeds throughout the code to try and make everything reproducible) but I'm giving you a fair warning here to stress how important it is to <strong>make a backup of the catalogues before you try adding a new region</strong>.</p>
+</div>
 
 
 
