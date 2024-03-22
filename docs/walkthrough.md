@@ -8,7 +8,8 @@ snakemake --cores 1 results/RegionCatalogues/{WAVES_N/WAVES_S}/{region_name}/{re
 
 from this folder. `{region_name}` refers to G12, G15, etc, or a new region entirely (see [Adding a New Region](docs/adding_a_new_region.md)). Unlike for some of the other pipelines I've written for Hector, there isn't a config file you need to point to. The required input files you'll need for this to work and the steps that the pipeline will carry out are outlined below.
 
-**Important note**: the default choice of sub-sampling method during the target selection is _randomly selecting galaxies above a given stellar mass_. I've tried very hard to ensure that I'm using a set random seed, such that if you ran this pipeline twice you'd get identical catalogues out. I can't guarantee that this will always be the case if you make changes to the code, however! **Please make a back up of the master catalogues for each region before running this code again**. I'd *highly* recommend that you only use this code to make catalogues for _new_ regions, and that the catalogues for the clusters, G12, G15, G23, H01 and H03 remain fixed. Otherwise, galaxies which we've already observed might not be included in the re-made catalogues, and this would make a horrible mess going forward!
+!!! danger
+     The default choice of sub-sampling method during the target selection is _randomly selecting galaxies above a given stellar mass/colour_. I've tried very hard to ensure that I'm using a set random seed, such that if you ran this pipeline twice you'd get identical catalogues out. I can't guarantee that this will always be the case if you make changes to the code, however! **Please make a back up of the master catalogues for each region before running this code again**. If you overwrite the master catalogues they might not be recoverable, and this would make a huge mess going forward! This has already happened to me once, which is why I'm raising this point again (it's the reason we have a pipeline step to `add_previously_observed_galaxies_back_to_master_catalogue`- see below).
 
 ## Necessary input catalogues
 
@@ -36,3 +37,17 @@ There are a few more files which are needed as inputs:
 - The `RegionInformation` folder contains a single file called `all_regions.csv`. This gives the details of each Region in the Hector Survey (its centre, width, height, etc).
 
 ## Pipeline Steps
+
+The pipeline undertakes the following steps:
+
+- `make_redshift_catalogue_from_2dF_obs`: the rule takes our 2dF observations, combined them together and makes a redshift catalogue for use later. The script is `workflow/scripts/make_redshift_catalogue_from_observations.py`.
+- `make_badclass_probabilities`: this rule calculates the probability that each of the galaxies in the cluster catalogue is "bad", for some reason (i.e. close to a star, the galaxy is actually an imaging artefact, etc). The script is `workflow/scripts/prepare_badclass_votes_table.py`.
+- `prepare_WAVES_catalogue`: this rule takes some initial steps (such as turning flux columns into magnitudes) and makes a modified WAVES North and WAVES South catalogue. The script is `workflow/scripts/prepare_WAVES_catalogues.py`.
+- `prepare_cluster_catalogue`: this rule performs similar initial preparatory steps for the cluster catalogue. The script is `workflow/scripts/prepare_cluster_catalogue.py`.
+- `run_target_selection`: this rule takes our large master catalogues and applies the Hector selection function to them. We also remove galaxies which small half-light radii, as well as sub-sampling our catalogues to be either "flat in mass" (for the WAVES catalogues) or randomly sub-sampling the cluster red sequence (for the cluster catalogues) to come up with our master target-selected catalogues. The script is `workflow/scripts/run_target_selection.py`.
+- `add_previously_observed_galaxies_back_to_master_catalogue`: this rule adds back in galaxies which were observed in 2023/2023 which then ended up being removed when I updated the catalogues and re-ran the random sampling. The script is `workflow/scripts/add_observed_galaxies_to_master_catalogues.py`.
+- `separate_into_subregions`: this rule takes our master catalogues and separates them into the individual sub-regions (e.g. WAVES N --> G12, G15, etc). The script is `workflow/scripts/separate_catalogues_into_regions.py`.
+- `make_star_catalogues`: this rule downloads star catalogues (standard stars and guide stars) for each region in the Hector survey. The script is `workflow/scripts/select_stars.py`.
+
+
+There are also equivalent scripts which do the same thing for the cluster catalogue but including low-redshift foreground galaxies in the catalogues too.

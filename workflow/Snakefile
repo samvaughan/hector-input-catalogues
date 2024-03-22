@@ -57,7 +57,7 @@ cluster_region_names = region_names[master_regions_per_region_name == "HectorClu
 WAVES_S_region_names = region_names[master_regions_per_region_name == "WAVES_S"]
 WAVES_N_region_names = region_names[master_regions_per_region_name == "WAVES_N"]
 
-# The fields we've observed redshifts from
+# The fields we've observed redshifts from for the Hector Redshift Survey.
 fields = [
     "H01",
     "H03",
@@ -138,6 +138,7 @@ rule all:
             "results/RegionCatalogues/HectorClusters_including_fg/{region_name}/{region_name}_standard_stars.csv",
             region_name=cluster_region_names,
         ),
+        non_sampled_master_target_selected_cat="results/MasterCatalogues/HectorMasterGalaxyCatalogue_not_sampled_including_badclass.csv",
         #database_created = "results/Database/tables_updated.flag"
         # all_tiling_complete=expand(
         #     "results/Tiling/{master_region}/{region_name}/{region_name}_tiling_complete.flag",
@@ -209,6 +210,7 @@ rule run_target_selection:
     output:
         target_selection_plot="results/MasterCatalogues/{master_region}/{master_region}_target_selection.png",
         master_target_selected_catalogue="results/MasterCatalogues/{master_region}/{master_region}_master_target_selected_initial.parquet",
+        master_target_selected_catalogue_not_subsampled="results/MasterCatalogues/{master_region}/{master_region}_master_target_selected_initial_not_subsampled.parquet",
     script:
         "scripts/run_target_selection.py"
 
@@ -365,6 +367,7 @@ rule run_target_selection_including_foreground:
     output:
         target_selection_plot="results/MasterCatalogues/{master_region}/{master_region}_target_selection_including_foreground.png",
         master_target_selected_catalogue="results/MasterCatalogues/{master_region}/{master_region}_target_selected_including_foreground_initial.parquet",
+        master_target_selected_catalogue_not_subsampled="results/MasterCatalogues/{master_region}/{master_region}_target_selected_including_foreground_initial_not_subsampled.parquet",
     script:
         "scripts/run_target_selection.py"
 
@@ -414,6 +417,19 @@ rule copy_cluster_star_cats_to_correct_name:
         shell(
             "cp {input.region_guide_star_catalogue} {output.region_guide_star_catalogue}"
         )
+
+
+rule make_final_master_catalogue_not_subsampled:
+    message:
+        "Making a master catalogue of things which pass target selection but which haven't been subsampled or had bad class galaxies removed"
+    input:
+        cluster_cat="results/MasterCatalogues/HectorClusters/HectorClusters_target_selected_including_foreground_initial_not_subsampled.parquet",
+        waves_S_cat="results/MasterCatalogues/WAVES_S/WAVES_S_master_target_selected_initial_not_subsampled.parquet",
+        waves_N_cat="results/MasterCatalogues/WAVES_N/WAVES_N_master_target_selected_initial_not_subsampled.parquet",
+    output:
+        master_cat=rules.all.input.non_sampled_master_target_selected_cat,
+    script:
+        "scripts/combine_non_sampled_catalogues.py"
 
 
 # rule tile_region_including_foreground:

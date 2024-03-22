@@ -11,23 +11,23 @@
       
       
       
+        <link rel="prev" href="../walkthrough/">
       
-        <link rel="next" href="walkthrough/">
       
       
-      <link rel="icon" href="img/favicon.png">
+      <link rel="icon" href="../img/favicon.png">
       <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.5.5">
     
     
       
-        <title>Hector Input Catalogues</title>
+        <title>Adding a New Region - Hector Input Catalogues</title>
       
     
     
-      <link rel="stylesheet" href="assets/stylesheets/main.50c56a3b.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.50c56a3b.min.css">
       
         
-        <link rel="stylesheet" href="assets/stylesheets/palette.06af60db.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
       
       
 
@@ -46,7 +46,7 @@
       
     
     
-    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -70,7 +70,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#the-hector-input-catalogues" class="md-skip">
+        <a href="#adding-a-new-region" class="md-skip">
           Skip to content
         </a>
       
@@ -86,9 +86,9 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="." title="Hector Input Catalogues" class="md-header__button md-logo" aria-label="Hector Input Catalogues" data-md-component="logo">
+    <a href=".." title="Hector Input Catalogues" class="md-header__button md-logo" aria-label="Hector Input Catalogues" data-md-component="logo">
       
-  <img src="img/favicon.png" alt="logo">
+  <img src="../img/favicon.png" alt="logo">
 
     </a>
     <label class="md-header__button md-icon" for="__drawer">
@@ -105,7 +105,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Home
+              Adding a New Region
             
           </span>
         </div>
@@ -192,9 +192,9 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="." title="Hector Input Catalogues" class="md-nav__button md-logo" aria-label="Hector Input Catalogues" data-md-component="logo">
+    <a href=".." title="Hector Input Catalogues" class="md-nav__button md-logo" aria-label="Hector Input Catalogues" data-md-component="logo">
       
-  <img src="img/favicon.png" alt="logo">
+  <img src="../img/favicon.png" alt="logo">
 
     </a>
     Hector Input Catalogues
@@ -218,19 +218,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="." class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -239,7 +230,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -251,7 +241,7 @@
   
   
     <li class="md-nav__item">
-      <a href="walkthrough/" class="md-nav__link">
+      <a href="../walkthrough/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -268,10 +258,19 @@
       
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="adding_a_new_region/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -280,6 +279,7 @@
   
 
       </a>
+      
     </li>
   
 
@@ -448,109 +448,18 @@
   
 
 
-<h1 id="the-hector-input-catalogues">The Hector Input Catalogues</h1>
-<p>This site describes the code I've written to go from the initial catalogues containing millions of objects to the final catalogues of targets that will be part of the Hector survey. </p>
-<p>The Hector Survey is made up of two large patches of sky, named WAVES North and WAVES South, as well as 11 dense galaxy clusters<sup id="fnref:1"><a class="footnote-ref" href="#fn:1">1</a></sup> at a range of Right Ascensions. To begin with, we've sub-divided the large WAVES North and South regions of sky into five smaller regions of roughly 60 square degrees: G12, G15, G23, H01 and H03. As the survey progresses, we'll add more of these.</p>
-<p>Along with the clusters, this makes 15 unique regions which this pipeline will create catalogues for. The ultimate outputs of this pipeline are the catalogues of galaxy targets, guide stars and standard stars for each of these regions.</p>
-<p>The list of Hector regions and the sky coordinates of their centres (in degrees) is below, and can also be downloaded as a .csv file <a download="HectorRegions.csv" href="files/HectorTargets.csv">here</a></p>
-<table>
-<thead>
-<tr>
-<th>Region Name</th>
-<th>Right Ascension</th>
-<th>Declination</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>A0151</td>
-<td>17.10920</td>
-<td>-15.40920</td>
-</tr>
-<tr>
-<td>A3158</td>
-<td>55.77040</td>
-<td>-53.65310</td>
-</tr>
-<tr>
-<td>A3266</td>
-<td>67.77460</td>
-<td>-61.44360</td>
-</tr>
-<tr>
-<td>A3376</td>
-<td>90.15290</td>
-<td>-40.03260</td>
-</tr>
-<tr>
-<td>A3391</td>
-<td>96.58590</td>
-<td>-53.69330</td>
-</tr>
-<tr>
-<td>A3395</td>
-<td>96.88000</td>
-<td>-54.43740</td>
-</tr>
-<tr>
-<td>A3667</td>
-<td>303.09170</td>
-<td>-56.81520</td>
-</tr>
-<tr>
-<td>A3716</td>
-<td>312.86000</td>
-<td>-52.70700</td>
-</tr>
-<tr>
-<td>A2399</td>
-<td>329.372605</td>
-<td>-7.796920</td>
-</tr>
-<tr>
-<td>A0119</td>
-<td>14.067150</td>
-<td>-1.255370</td>
-</tr>
-<tr>
-<td>A0085</td>
-<td>10.460211</td>
-<td>-9.303184</td>
-</tr>
-<tr>
-<td>G12</td>
-<td>180</td>
-<td>0.0</td>
-</tr>
-<tr>
-<td>G15</td>
-<td>225</td>
-<td>0.0</td>
-</tr>
-<tr>
-<td>G23</td>
-<td>345</td>
-<td>-32.5</td>
-</tr>
-<tr>
-<td>H01</td>
-<td>15</td>
-<td>30</td>
-</tr>
-<tr>
-<td>H03</td>
-<td>45</td>
-<td>30</td>
-</tr>
-</tbody>
-</table>
-<div class="footnote">
-<hr />
+<h1 id="adding-a-new-region">Adding a new Region</h1>
+<p>As the Hector survey progresses, it will become necessary to create catalogues of targets, standard stars and guide stars for a new region of the sky. This page explains how to do that.</p>
+<p>You'll need to make the following changes:</p>
 <ol>
-<li id="fn:1">
-<p>Really more like 10- the clusters A3391 and A3395 are merging, and are treated as a single field in the pipeline.&#160;<a class="footnote-backref" href="#fnref:1" title="Jump back to footnote 1 in the text">&#8617;</a></p>
-</li>
+<li>Make a backup of all of the current catalogues. You really don't want to overwrite anything!</li>
+<li>Edit the file <code>resources/RegionInformation/all_regions.csv</code> to add the properties of the new region. You'll need to add a name, the minimum and maximum RA and Declination of the region, the area it covers, the "master region" that it comes from (e.g. <code>WAVES_S</code>, <code>WAVES_N</code> or <code>HectorClusters</code>) and the source of the photometry (where we get the guide and standard star catalogues from). Note that the pipeline at the moment can only download catalogues from the SkyMapper or PANSTARRS surveys at the moment.</li>
+<li>Re-run the pipeline from the main folder: <code>snakemake --cores 1</code>. You should see the new region catalogues being made.</li>
+<li>Check that the master catalogue you've just updated (e.g. the master WAVES N catalogue if you've added a WAVES N region) is the same as it was before, just with extra galaxies added which correspond to the new region of sky. </li>
 </ol>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p>I've not tested adding a new region. There is a real chance of overwriting the master catalogues, which <em>might</em> be unrecoverable due to the random sampling element. I don't <em>think</em> that this is the case (I've added random seeds throughout the code to try and make everything reproducible) but I'm giving you a fair warning here to stress how important it is to <strong>make a backup of the catalogues before you try adding a new region</strong>.</p>
 </div>
 
 
@@ -598,12 +507,12 @@
     </div>
     
     
-    <script id="__config" type="application/json">{"base": ".", "features": ["content.footnote.tooltips"], "search": "assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    <script id="__config" type="application/json">{"base": "..", "features": ["content.footnote.tooltips"], "search": "../assets/javascripts/workers/search.b8dbb3d2.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
     
     
-      <script src="assets/javascripts/bundle.c18c5fb9.min.js"></script>
+      <script src="../assets/javascripts/bundle.c18c5fb9.min.js"></script>
       
-        <script src="javascripts/mathjax.js"></script>
+        <script src="../javascripts/mathjax.js"></script>
       
         <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
       

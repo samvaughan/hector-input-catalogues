@@ -3,6 +3,7 @@ Select standard and guide stars for each of our survey regions in the WAVES regi
 
 For WAVES North we use Panstarrs, for WAVES South we use SkyMapper.
 """
+
 import utils
 import numpy as np
 from astroquery.gaia import Gaia

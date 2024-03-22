@@ -9,6 +9,11 @@ nav:
   - Home: 'index.md'
   - Running the Code: 'walkthrough.md'
   - Adding a New Region: 'adding_a_new_region.md'
+  - Other Hector Documentation: 
+    - Home: https://samvaughan.info/hector
+    - Observing Pipeline: 'https://samvaughan.info/hector-observing/'
+    - Tiling : 'https://samvaughan.info/hector-tiling/'
+    - Database: 'https://samvaughan.info/hector-database/'
 
 theme: 
   name: material
@@ -25,6 +30,9 @@ markdown_extensions:
       generic: true
   - attr_list
   - footnotes
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
 
 extra_javascript:
   - javascripts/mathjax.js
