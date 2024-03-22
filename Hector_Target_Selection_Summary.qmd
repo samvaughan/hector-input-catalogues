@@ -19,7 +19,7 @@ The initial catalogues for the WAVES North and WAVES South regions come from the
 
 I manually corrected for galactic extinction using the maps of [Schlafly and Finkbeiner (2011)](https://ui.adsabs.harvard.edu/abs/2011ApJ...737..103S/abstract) and made a magnitude cut of $r < 19.5$ to remove faint objects. I also removed objects which had a class of "Star". These form the WAVES catalogues in the folder `HectorInputCatalogues/resources/InitialInputCatalogues/`.
 
-The Cluster catalogue in there is named `resources/InitialInputCatalogues/` `COMBINED_ApMatch_MSTARV2.5_MattOwers_310123.parquet`. Matt will provide the details, and hopefully the date will help!
+The Cluster catalogue in there is saved in `resources/InitialInputCatalogues/` and named `COMBINED_ApMatch_MSTARV2.5_MattOwers_310123.parquet`. Matt will provide the details, and hopefully the date will help!
 
 ## Our input redshift catalogue and the Hector Redshift Survey
 
@@ -115,7 +115,7 @@ The actual catalogues with the sparse sampling (which we observe) will change ev
 ## Splitting up the Catalogues by Region
 
 
-We then take our master catalogue (which has passed the target selection criteria) and separate them by their individual regions (e.g. H03, A3376, etc). This is done by their RA and Declination, using the file `resources/RegionInformation/all_regions.csv`. The catalogues themselves are saved in `results/RegionCatalogues/{region_name}/{region_name}_Hector_target_galaxies.csv`.
+We then take our master catalogue (which has passed the target selection criteria) and separate them by their individual regions (e.g. H03, A3376, etc). This is done by their RA and Declination, using the file `resources/RegionInformation/all_regions.csv`. The catalogues themselves are saved in `results/RegionCatalogues/{region_name}`, with the filename `{region_name}_Hector_target_galaxies.csv`.
 
 
 ## Selecting Stars
@@ -132,4 +132,4 @@ We select guide stars which have a $g$-band magnitude between 14 and 15. This is
 
 We then try and select guide stars which are most like F-type stars. To help with this, I took some observed F-type star spectra from the X-Shooter Spectral Library, and "observed" them through various filters from the Skymapper and PANSTARRS data. I measured their colours, and have stored the averages in the files `resources/Misc/PANSTARRS_F_star_colours.csv` and `resources/Misc/SkyMapper_F_star_colours.csv`. I then compare the star colours from the catalogue to these "template" F-star colours, and assign each star an "X" value (in the same way Julia did in her 2015 paper). I then sort by this value and keep stars which have smaller values of X- these are most likely to be F stars.
 
-The star catalogues are then saved in `results/RegionCatalogues/` `{region_name}/{region_name}_standard_stars.csv` and `results/RegionCatalogues/` `{region_name}/{region_name}_guide_stars.csv`.
+The star catalogues are then saved in `results/RegionCatalogues/{region_name}` and are called `{region_name}_standard_stars.csv` and `{region_name}_guide_stars.csv` respectively.
